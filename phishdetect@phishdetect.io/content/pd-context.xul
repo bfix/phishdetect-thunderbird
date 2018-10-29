@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<overlay id="pd-context" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<script type="application/javascript" src="chrome://phishdetect/content/phishdetect.js"/>
+	<popup id="mailContext">
+		<menuitem id="pd-context-item" label="PhishDetect" oncommand="scanEmail()"/>
+	</popup>
+</overlay>
