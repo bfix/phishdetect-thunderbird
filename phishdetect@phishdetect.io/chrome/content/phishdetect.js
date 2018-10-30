@@ -18,41 +18,73 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+Components.utils.import("resource:///modules/gloda/mimemsg.js");
+
+
 /*****************************************************************************
  * Scan email content for phishing using the PhishDetect engine
  *****************************************************************************/
 
-function check(aMsgHdr, aCallback) {
-
-	// get message in MIME format
-	MsgHdrToMimeMessage (
-		aMsgHdr,
-		null,
-		function (aMsgHdr, aMimeMsg) {
-			// evaluate body by PhishDetect engine.
-			var rc = (Math.random() > 0.5 ? "true" : "false");
-			aCallback(aMsgHdr, rc)
-		},
-		true,
-		{
-			partsOnDemand: false,
-			examineEncryptedParts:true
+async function check(aMsgHdr, aCallback) {
+	await new Promise(
+		function(resolve) {
+			// get message in MIME format
+			MsgHdrToMimeMessage (
+				aMsgHdr,
+				null,
+				function (aMsgHdr, aMimeMsg) {
+					// evaluate body by PhishDetect engine.
+					var rc = (Math.random() > 0.5 ? "true" : "false");
+					aCallback(aMsgHdr, rc);
+					resolve();
+				},
+				true,
+				{
+					partsOnDemand: false,
+					examineEncryptedParts:true
+				}
+			);
+			return;
 		}
 	);
 }
 
 /*****************************************************************************
- * Scan email for phishing content from context menu
+ * Scan email(s) for phishing content from context menu
  *****************************************************************************/
 
 function scanEmail() {
-	show('Scanning...')
+	statusMsg('Evaluating email...');
 	var hdr = gFolderDisplay.selectedMessage;
 	check(hdr, function(aMsgHdr, aRC) {
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
-		alert("PhishDetect: " + (aRC == 'true' ? "Suspicious email content!" : "Email looks clean!"));
+		statusMsg(aRC == 'true' ? "Suspicious email content!" : "Email looks clean");
 	});
-	show('Idle');
+}
+
+function scanFolder() {
+	var selFolders = gFolderTreeView.getSelectedFolders();
+	if (selFolders.length != 1) {
+		alert("None or multiple folders selected - PhishDetect not run");
+		return;
+	}
+	var folder = selFolders[0];	
+	
+	var msgArray = folder.messages;
+	var count = folder.getTotalMessages(false);
+	var pos = 1;
+	var flagged = 0;
+	while (msgArray.hasMoreElements()) {
+		statusMsg('Evaluating emails in folder: ' + pos + "/" + count);
+	    let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
+		check(msgHdr, function(aMsgHdr, aRC) {
+			aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
+			if (aRC == 'true')
+				flagged++;
+		});
+		pos++;
+	}
+	statusMsg('Evaluated ' + count + ' emails in folder: ' + flagged + ' suspicious.');
 }
 
 /*****************************************************************************
@@ -110,15 +142,13 @@ var createDbObserver = {
  * Handle status messages
  *****************************************************************************/
 
-function show(msg) {
-	document.getElementById("pd-status-item").label = "PhishDetect: " + msg;
+function statusMsg(msg) {
+	document.getElementById("statusText").label = "PhishDetect: " + msg;
 }
 
 /*****************************************************************************
  * Initialize the PhishDetect extension.
  *****************************************************************************/
-
-Components.utils.import("resource:///modules/gloda/mimemsg.js");
 
 window.addEventListener("load", function() {
 	
@@ -132,6 +162,6 @@ window.addEventListener("load", function() {
 		.getService(Components.interfaces.nsIObserverService);
 	observerService.addObserver(createDbObserver, "MsgCreateDBView", false);
 	
-	// update status.
-	show("Started");
+	// notify user
+	statusMsg("Started.");
 }, false);
