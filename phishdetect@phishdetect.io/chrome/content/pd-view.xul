@@ -7,8 +7,8 @@
 
 	<rows id="msgNotificationBar">
 		<row id="pd-deck" collapsed="true">
-			<hbox flex="1" class="msgNotificationBar pd-notification" align="center">
-	    		<image id="pd-view-img" src="chrome://phishdetect/content/icon48.png"/>
+			<hbox id="pd-notification" flex="1" class="msgNotificationBar" align="center">
+	    		<image id="pd-view-img" src="chrome://phishdetect/content/icon48-w.png"/>
 	    		<vbox flex="1">
 	      			<description flex="1" class="msgNotificationBarText">PhishDetect</description>
 	      			<description flex="1" class="msgNotification-smallText">

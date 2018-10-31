@@ -1,6 +1,6 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
-#pd-deck {
-	background-color: orange !important;
-	color: black !important;
+#pd-notification {
+	background-color: #000000 !important;
+	color: #ffffff !important;
 }
