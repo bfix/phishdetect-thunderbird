@@ -1,22 +1,23 @@
 <?xml version="1.0"?>
-<?xml-stylesheet href="chrome://phishdetect/skin/phishdetect.css" type="text/css" ?>
+<?xml-stylesheet href="chrome://phishdetect/skin/phishdetect.css" type="text/css"?>
+
 <overlay id="pd-view" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
 	<script type="application/javascript" src="chrome://phishdetect/content/phishdetect.js"/>
-	<deck id="msgNotificationBar">
-		<hbox id="pd-deck" class="msgNotificationBar" align="center">
-    		<image id="phishingBarImage" src="chrome://phishdetect/content/icon48.png"/>
-    		<vbox flex="1">
-      			<description flex="1" class="msgNotificationBarText">PhishDetect</description>
-				<label class="msgNotificaton-smallText" value="Possible phishing email detected."/>
-				<label class="msgNotificaton-smallText" value="All links in the message have been BLOCKED."/>
-			</vbox>
-    		<vbox flex="1">
-      			<description flex="1" class="msgNotification">Details:</description>
-				<label class="msgNotificaton-smallText" value="Suspicious domains: 3"/>
-				<label class="msgNotificaton-smallText" value="Known phishing sites: 1"/>
-			</vbox>
-			<button label="Details" oncommand="alert('...showing details...');"/>
-			<button label="Unblock" oncommand="alert('...unblocking links...');"/>
-  		</hbox>
-	</deck>
+
+	<rows id="msgNotificationBar">
+		<row id="pd-deck" collapsed="true">
+			<hbox flex="1" class="msgNotificationBar pd-notification" align="center">
+	    		<image id="pd-view-img" src="chrome://phishdetect/content/icon48.png"/>
+	    		<vbox flex="1">
+	      			<description flex="1" class="msgNotificationBarText">PhishDetect</description>
+	      			<description flex="1" class="msgNotification-smallText">
+						Possible phishing email detected. All links in the message have been BLOCKED.
+					</description>
+				</vbox>
+				<button label="Details" oncommand="alert('...showing details...');"/>
+				<button label="Unblock" oncommand="alert('...unblocking links...');"/>
+	  		</hbox>
+	  	</row>
+	</rows>
 </overlay>

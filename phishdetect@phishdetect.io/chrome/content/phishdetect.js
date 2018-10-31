@@ -102,6 +102,13 @@ var newMailListener = {
 };
 
 /*****************************************************************************
+ * New message selected and displayed.
+ *****************************************************************************/
+
+function onMessageEvent() {
+}
+
+/*****************************************************************************
  * Handle PhishDetect column in message list
  *****************************************************************************/
 
@@ -150,7 +157,8 @@ function statusMsg(msg) {
  * Initialize the PhishDetect extension.
  *****************************************************************************/
 
-window.addEventListener("load", function() {
+window.addEventListener("load", function load() {
+    window.removeEventListener("load", load, false);
 	
 	// add filter for incoming mails
 	var notificationService = Components.classes["@mozilla.org/messenger/msgnotificationservice;1"]
@@ -161,6 +169,27 @@ window.addEventListener("load", function() {
 	var observerService = Components.classes["@mozilla.org/observer-service;1"]
 		.getService(Components.interfaces.nsIObserverService);
 	observerService.addObserver(createDbObserver, "MsgCreateDBView", false);
+
+	// handle message events
+	var messagepane = document.getElementById("messagepane");
+	if (messagepane) {
+		messagepane.addEventListener("load", function(event) {
+			gMessageListeners.push({
+				onStartHeaders: function() {
+					document.getElementById('pd-deck').setAttribute('collapsed', 'true');
+				},
+				onEndHeaders: function() {
+					var hdr = gFolderDisplay.selectedMessage;
+					if (hdr.getStringProperty("X-Custom-PhishDetect") == "true") {
+						document.getElementById('pd-deck').setAttribute('collapsed', 'false');
+					}
+				}
+			});
+		}, true);
+		messagepane.addEventListener("unload", function(event) {
+			document.getElementById('pd-deck').setAttribute('collapsed', 'true');
+		}, true);
+    }
 	
 	// notify user
 	statusMsg("Started.");
