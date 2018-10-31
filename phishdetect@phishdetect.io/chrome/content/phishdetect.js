@@ -20,6 +20,9 @@
 
 Components.utils.import("resource:///modules/gloda/mimemsg.js");
 
+// nsIMessenger instance for access to messages
+var gMessenger = Components.classes["@mozilla.org/messenger;1"]
+	.createInstance(Components.interfaces.nsIMessenger);
 
 /*****************************************************************************
  * Scan email content for phishing using the PhishDetect engine
@@ -33,9 +36,15 @@ async function check(aMsgHdr, aCallback) {
 				aMsgHdr,
 				null,
 				function (aMsgHdr, aMimeMsg) {
+
+					//--------------------------------------------------
 					// evaluate body by PhishDetect engine.
-					var rc = (Math.random() > 0.5 ? "true" : "false");
+					//--------------------------------------------------
+					let rc = (Math.random() > 0.5 ? "true" : "false");
+					
+					// callback to invoker
 					aCallback(aMsgHdr, rc);
+					// fulfill promise
 					resolve();
 				},
 				true,
@@ -63,20 +72,24 @@ function scanEmail() {
 }
 
 function scanFolder() {
-	var selFolders = gFolderTreeView.getSelectedFolders();
+	// get selected folder (no-multi-select!)
+	let selFolders = gFolderTreeView.getSelectedFolders();
 	if (selFolders.length != 1) {
 		alert("None or multiple folders selected - PhishDetect not run");
 		return;
 	}
-	var folder = selFolders[0];	
+	let folder = selFolders[0];	
 	
-	var msgArray = folder.messages;
-	var count = folder.getTotalMessages(false);
-	var pos = 1;
-	var flagged = 0;
+	// check all emails in folder (not recursive!)
+	// and count suspicious emails detected
+	let msgArray = folder.messages;
+	let count = folder.getTotalMessages(false);
+	let pos = 1;
+	let flagged = 0;
 	while (msgArray.hasMoreElements()) {
 		statusMsg('Evaluating emails in folder: ' + pos + "/" + count);
-	    let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
+		// evaluate email content
+		let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
 		check(msgHdr, function(aMsgHdr, aRC) {
 			aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
 			if (aRC == 'true')
@@ -84,6 +97,7 @@ function scanFolder() {
 		});
 		pos++;
 	}
+	// status feedback
 	statusMsg('Evaluated ' + count + ' emails in folder: ' + flagged + ' suspicious.');
 }
 
@@ -92,9 +106,9 @@ function scanFolder() {
  *****************************************************************************/
 
 var newMailListener = {
-	msgAdded: function(hdr) {
-		if (!hdr.isRead) {
-			check(hdr, function(aMsgHdr, aRC) {
+	msgAdded: function(aMsgHdr) {
+		if (!aMsgHdr.isRead) {
+			check(aMsgHdr, function(aMsgHdr, aRC) {
 				aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
 			});
 		}
@@ -102,10 +116,46 @@ var newMailListener = {
 };
 
 /*****************************************************************************
- * New message selected and displayed.
+ * Sanitize message
  *****************************************************************************/
 
-function onMessageEvent() {
+function sanitize(node) {
+	// modify DOM on the fly
+	switch (node.nodeName) {
+		case 'A':
+			// save and reset link target
+			let oldHref = node.getAttribute('href');
+			node.setAttribute('href_old', oldHref);
+			node.setAttribute('href',' ');
+			// visually tag blocked links
+			let text = node.innerHTML;
+			node.innerHTML = "[<span style='color: #f00; font-weight: bold;'>BLOCKED</span>:"+text+"]";
+			break;
+	}
+	// recursively iterate over child nodes
+	let nodes = node.childNodes;
+	for (var i = 0; i < nodes.length; i++) {
+        sanitize(nodes[i]);
+	}
+}
+
+function showSanitizedMsg(aMsgHdr, aEvent) {
+	// get the URL of the message to be displayed
+	let uri = aMsgHdr.folder.getUriForMsg(aMsgHdr);
+	let neckoURL = {};
+	let msgService = gMessenger.messageServiceFromURI(uri);
+	msgService.GetUrlForUri(uri, neckoURL, null);
+	let url = neckoURL.value;
+
+	// go through the message body and sanitize it
+	let browser = window.document.getElementById('messagepane');
+	let doc = browser.contentDocument;
+	if (doc.body.getAttribute('phishdetect') != 'true') {
+		// only process once...
+		doc.body.setAttribute('phishdetect','true');
+		// process email body
+		sanitize(doc.body);
+	}
 }
 
 /*****************************************************************************
@@ -116,8 +166,8 @@ var columnHandler = {
 	getCellText: function(row, col) {
 		return null;
 	},
-	getSortStringForRow: function(hdr) {
-		var hdr = gDBView.getMsgHdrAt(row);
+	getSortStringForRow: function(row) {
+		let hdr = gDBView.getMsgHdrAt(row);
 		return hdr.getStringProperty("X-Custom-PhishDetect");
 	},
 	isString: function() {
@@ -128,8 +178,8 @@ var columnHandler = {
 	getRowProperties: function(row, props){
 	},
 	getImageSrc: function(row, col) {
-		var hdr = gDBView.getMsgHdrAt(row);
-		var status = hdr.getStringProperty("X-Custom-PhishDetect");
+		let hdr = gDBView.getMsgHdrAt(row);
+		let status = hdr.getStringProperty("X-Custom-PhishDetect");
 		if (status == 'true')
 			return "chrome://phishdetect/content/icon16.png";
 		return null;
@@ -158,36 +208,60 @@ function statusMsg(msg) {
  *****************************************************************************/
 
 window.addEventListener("load", function load() {
+	// run only once...
     window.removeEventListener("load", load, false);
 	
 	// add filter for incoming mails
-	var notificationService = Components.classes["@mozilla.org/messenger/msgnotificationservice;1"]
+	let notificationService = Components.classes["@mozilla.org/messenger/msgnotificationservice;1"]
 		.getService(Components.interfaces.nsIMsgFolderNotificationService);
 	notificationService.addListener(newMailListener, notificationService.msgAdded);
 
 	// add custom column for PhishDetect in message list view
-	var observerService = Components.classes["@mozilla.org/observer-service;1"]
+	let observerService = Components.classes["@mozilla.org/observer-service;1"]
 		.getService(Components.interfaces.nsIObserverService);
 	observerService.addObserver(createDbObserver, "MsgCreateDBView", false);
 
-	// handle message events
-	var messagepane = document.getElementById("messagepane");
-	if (messagepane) {
-		messagepane.addEventListener("load", function(event) {
+	// handle message display
+	let messagePane = GetMessagePane();
+	if (messagePane) {
+		// register PhishDetect callbacks:
+		
+		// (1) message pane is loaded
+		messagePane.addEventListener("load", function(event) {
 			gMessageListeners.push({
 				onStartHeaders: function() {
+					// default is no PhishDetect notification bar
 					document.getElementById('pd-deck').setAttribute('collapsed', 'true');
 				},
 				onEndHeaders: function() {
-					var hdr = gFolderDisplay.selectedMessage;
+					// check if email is tagged by PhishDetect
+					let hdr = gFolderDisplay.selectedMessage;
 					if (hdr.getStringProperty("X-Custom-PhishDetect") == "true") {
+						// show PhishDetect notification bar
 						document.getElementById('pd-deck').setAttribute('collapsed', 'false');
 					}
-				}
+				},
+				onStartAttachments: function() {},
+				onEndAttachments: function() {
+					// display sanitized attachments ?!
+				},
+				onBeforeShowHeaderPane: function() {}
 			});
 		}, true);
-		messagepane.addEventListener("unload", function(event) {
+		
+		// (2) close PhishDetect notification bar when message pane is unloaded
+		messagePane.addEventListener("unload", function(event) {
 			document.getElementById('pd-deck').setAttribute('collapsed', 'true');
+		}, true);
+
+		// (3) when DOM content of the email is loaded
+		messagePane.addEventListener("DOMContentLoaded", function(event) {
+			// check if email is tagged by PhishDetect
+			let hdr = gFolderDisplay.selectedMessage;
+			if (hdr.getStringProperty("X-Custom-PhishDetect") == "true") {
+				// display sanitized message
+				showSanitizedMsg(hdr, event);
+			}
 		}, true);
     }
 	

@@ -16,7 +16,7 @@
 					</description>
 				</vbox>
 				<button label="Details" oncommand="alert('...showing details...');"/>
-				<button label="Unblock" oncommand="alert('...unblocking links...');"/>
+				<button label="Unblock" oncommand="showSanitizedMsg(gFolderDisplay.selectedMessage);"/>
 	  		</hbox>
 	  	</row>
 	</rows>
