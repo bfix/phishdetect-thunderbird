@@ -1,6 +1,12 @@
 <?xml version="1.0"?>
 <overlay id="pd-column" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/base64.min.js"/> 
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/sha256.js"/> 
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/bloomfilter.js"/> 
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/phishdetect.js"/> 
+
 	<tree id="threadTree">
 		<treecols id="threadCols">
 			<splitter class="tree-splitter" />

@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet type="text/css" href="chrome://messenger/skin/preferences/preferences.css"?>
+
+<prefwindow title="PhishDetect Prefs" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<prefpane id="pd-prefs-pane">
+		<preferences>
+			<preference id="pref-url" name="extensions.phishdetect.node_url" type="string"/>
+			<preference id="pref-sync" name="extensions.phishdetect.node_sync" type="int"/>
+			<preference id="pref-reports" name="extensions.phishdetect.reporting" type="bool"/>
+			<preference id="pref-contact" name="extensions.phishdetect.contact" type="string"/>
+		</preferences>
+		<groupbox>
+			<caption label="PhishDetect node"/>
+			<description>
+				Specify the parameters for the PhishDetect node you connect to:
+			</description>
+			<hbox align="center">
+				<label control="pd-pref-url" value="Node URL:"/>
+				<textbox id="pd-pref-url" preference="pref-url" placeholder="Enter a URL..."/>
+			</hbox>
+			<hbox align="center">
+				<label control="pd-pref-sync" value="Update interval (min):"/>
+				<textbox id="pd-pref-sync" preference="pref-sync" placeholder="60"/>
+			</hbox>
+		</groupbox>
+		<groupbox>
+			<caption label="Reporting"/>
+			<description>
+				Send incident reports to node.
+			</description>
+			<checkbox label="Enable reporting" preference="pref-reports" checked="false"/>
+			<hbox align="center">
+				<label control="pd-pref-contact" value="User:"/>
+				<textbox id="pd-pref-contact" preference="pref-contact" placeholder="Enter a user name..."/>
+			</hbox>
+		</groupbox>
+	</prefpane>
+</prefwindow>

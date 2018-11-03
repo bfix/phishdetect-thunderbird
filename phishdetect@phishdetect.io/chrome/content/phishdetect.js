@@ -24,11 +24,18 @@ Components.utils.import("resource:///modules/gloda/mimemsg.js");
 var gMessenger = Components.classes["@mozilla.org/messenger;1"]
 	.createInstance(Components.interfaces.nsIMessenger);
 
+
 /*****************************************************************************
  * Scan email content for phishing using the PhishDetect engine
  *****************************************************************************/
 
-async function check(aMsgHdr, aCallback) {
+// Evaluate body by PhishDetect engine.
+function evaluateMessage(msg) {
+	return (Math.random() > 0.5 ? "true" : "false");
+}
+
+// Check PhishDetect status for a message.
+async function checkMessage(aMsgHdr, aCallback) {
 	await new Promise(
 		function(resolve) {
 			// get message in MIME format
@@ -36,22 +43,15 @@ async function check(aMsgHdr, aCallback) {
 				aMsgHdr,
 				null,
 				function (aMsgHdr, aMimeMsg) {
-
-					//--------------------------------------------------
 					// evaluate body by PhishDetect engine.
-					//--------------------------------------------------
-					let rc = (Math.random() > 0.5 ? "true" : "false");
-					
+					let rc = evaluateMessage(aMimeMsg);
 					// callback to invoker
 					aCallback(aMsgHdr, rc);
 					// fulfill promise
 					resolve();
 				},
 				true,
-				{
-					partsOnDemand: false,
-					examineEncryptedParts:true
-				}
+				{ partsOnDemand: false, examineEncryptedParts:true }
 			);
 			return;
 		}
@@ -62,17 +62,19 @@ async function check(aMsgHdr, aCallback) {
  * Scan email(s) for phishing content from context menu
  *****************************************************************************/
 
+// Scan single email message.
 function scanEmail() {
 	statusMsg('Evaluating email...');
 	var hdr = gFolderDisplay.selectedMessage;
-	check(hdr, function(aMsgHdr, aRC) {
+	checkMessage(hdr, function(aMsgHdr, aRC) {
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
 		statusMsg(aRC == 'true' ? "Suspicious email content!" : "Email looks clean");
 	});
 }
 
+// Scan all emails in a folder (no-multi-select, no recursion!)
 function scanFolder() {
-	// get selected folder (no-multi-select!)
+	// get selected folder
 	let selFolders = gFolderTreeView.getSelectedFolders();
 	if (selFolders.length != 1) {
 		alert("None or multiple folders selected - PhishDetect not run");
@@ -90,7 +92,7 @@ function scanFolder() {
 		statusMsg('Evaluating emails in folder: ' + pos + "/" + count);
 		// evaluate email content
 		let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
-		check(msgHdr, function(aMsgHdr, aRC) {
+		checkMessage(msgHdr, function(aMsgHdr, aRC) {
 			aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
 			if (aRC == 'true')
 				flagged++;
@@ -105,10 +107,12 @@ function scanFolder() {
  * Filter incoming emails
  *****************************************************************************/
 
+// Callback for incoming emails: Evaluate message body and add a new header
+// attribute 'X-Custom-PhishDetect' to record email status.
 var newMailListener = {
 	msgAdded: function(aMsgHdr) {
 		if (!aMsgHdr.isRead) {
-			check(aMsgHdr, function(aMsgHdr, aRC) {
+			checkMessage(aMsgHdr, function(aMsgHdr, aRC) {
 				aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
 			});
 		}
@@ -119,6 +123,8 @@ var newMailListener = {
  * Sanitize message
  *****************************************************************************/
 
+// Sanitize (remove/modify possible suspicious content) from a HTML node
+// (and its successors) in a message display.
 function sanitize(node) {
 	// modify DOM on the fly
 	switch (node.nodeName) {
@@ -139,14 +145,9 @@ function sanitize(node) {
 	}
 }
 
+// Sanitize (remove/modify possible suspicious content) from the HTML document
+// used to render/display the message content.
 function showSanitizedMsg(aMsgHdr, aEvent) {
-	// get the URL of the message to be displayed
-	let uri = aMsgHdr.folder.getUriForMsg(aMsgHdr);
-	let neckoURL = {};
-	let msgService = gMessenger.messageServiceFromURI(uri);
-	msgService.GetUrlForUri(uri, neckoURL, null);
-	let url = neckoURL.value;
-
 	// go through the message body and sanitize it
 	let browser = window.document.getElementById('messagepane');
 	let doc = browser.contentDocument;
@@ -162,7 +163,8 @@ function showSanitizedMsg(aMsgHdr, aEvent) {
  * Handle PhishDetect column in message list
  *****************************************************************************/
 
-var columnHandler = {
+// Handler for the PhishDetect column in the message list.
+var pdColumnHandler = {
 	getCellText: function(row, col) {
 		return null;
 	},
@@ -189,9 +191,10 @@ var columnHandler = {
 	}
 };
 
-var createDbObserver = {
+// Register observer for PhishDetect column.
+var pdObserver = {
 	observe: function(aMsgFolder, aTopic, aData) {  
-		gDBView.addColumnHandler("pd-column-item", columnHandler);
+		gDBView.addColumnHandler("pd-column-item", pdColumnHandler);
 	}
 };
 
@@ -199,6 +202,7 @@ var createDbObserver = {
  * Handle status messages
  *****************************************************************************/
 
+// Display message on Thunderbird status bar.
 function statusMsg(msg) {
 	document.getElementById("statusText").label = "PhishDetect: " + msg;
 }
@@ -207,6 +211,7 @@ function statusMsg(msg) {
  * Initialize the PhishDetect extension.
  *****************************************************************************/
 
+// Start PhishDetect extension when Thunderbird has loaded its main window.
 window.addEventListener("load", function load() {
 	// run only once...
     window.removeEventListener("load", load, false);
@@ -219,7 +224,7 @@ window.addEventListener("load", function load() {
 	// add custom column for PhishDetect in message list view
 	let observerService = Components.classes["@mozilla.org/observer-service;1"]
 		.getService(Components.interfaces.nsIObserverService);
-	observerService.addObserver(createDbObserver, "MsgCreateDBView", false);
+	observerService.addObserver(pdObserver, "MsgCreateDBView", false);
 
 	// handle message display
 	let messagePane = GetMessagePane();
@@ -258,12 +263,16 @@ window.addEventListener("load", function load() {
 		messagePane.addEventListener("DOMContentLoaded", function(event) {
 			// check if email is tagged by PhishDetect
 			let hdr = gFolderDisplay.selectedMessage;
-			if (hdr.getStringProperty("X-Custom-PhishDetect") == "true") {
+			if (hdr != null && hdr.getStringProperty("X-Custom-PhishDetect") == "true") {
 				// display sanitized message
 				showSanitizedMsg(hdr, event);
 			}
 		}, true);
     }
+	
+	// get latest indicators
+	statusMsg("Fetching indicators...");
+	fetchIndicators();
 	
 	// notify user
 	statusMsg("Started.");

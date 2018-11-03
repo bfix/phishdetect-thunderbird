@@ -11,6 +11,8 @@
     <em:homepageURL>https://phishdetect.io/</em:homepageURL>
     <em:developer>Bernd Fix</em:developer>
     <em:developer>Claudio Guarnieri</em:developer>
+    <em:optionsType>3</em:optionsType>
+    <em:optionsURL>chrome://phishdetect/content/pd-prefs.xul</em:optionsURL>
     <em:targetApplication>
       <Description>
         <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
