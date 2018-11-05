@@ -1,3 +1,22 @@
+/*
+ * ============================================================================
+ * PhishDetect JavaScript client library
+ * ============================================================================
+ * (c) 2018 Bernd Fix   >Y<
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 /*****************************************************************************
  * PhishDetect client library.
@@ -74,20 +93,28 @@ function sendEvent(eventType, indicator, hashed) {
 // Dissect and analyze email message (MIME format with headers)
 //----------------------------------------------------------------------
 
+var reasons = [
+	"Sender", "ReplyTo", "Sender domain", "Mail hops (1/2)",
+	"Links (3/15)", "Mail addresses (3/3)"
+];
+
 function inspectEMail(email) {
+	let list = [];
+	let rc = false;
 	if (Math.random() > 0.5) {
-		return {
-			phish: true,
-			date: Date.now(),
-			indications: [
-				"Sender", "ReplyTo", "Sender domain", "Mail hops (1/2)",
-				"Links (3/15)", "Mail addresses (3/3)"
-			]
+		let a = Math.floor(Math.random() * 32);
+		let m = 1;
+		for (var i = 0; i < 6; i++) {
+			if ((a & m) != 0) {
+				list.push(reasons[i]);
+			}
+			m *= 2;
 		}
+		rc = true;
 	}
 	return {
-		phish: false,
+		phish: rc,
 		date: Date.now(),
-		indications: []
+		indications: list
 	}
 }
