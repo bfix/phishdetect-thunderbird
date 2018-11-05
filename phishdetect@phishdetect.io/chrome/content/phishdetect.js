@@ -29,11 +29,6 @@ var gMessenger = Components.classes["@mozilla.org/messenger;1"]
  * Scan email content for phishing using the PhishDetect engine
  *****************************************************************************/
 
-// Evaluate body by PhishDetect engine.
-function evaluateMessage(msg) {
-	return (Math.random() > 0.5 ? "true" : "false");
-}
-
 // Check PhishDetect status for a message.
 async function checkMessage(aMsgHdr, aCallback) {
 	await new Promise(
@@ -88,15 +83,16 @@ function scanFolder() {
 	let count = folder.getTotalMessages(false);
 	let pos = 1;
 	let flagged = 0;
+	var cb = function(aMsgHdr, aRC) {
+		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
+		if (aRC.phish)
+			flagged++;
+	}
 	while (msgArray.hasMoreElements()) {
 		statusMsg('Evaluating emails in folder: ' + pos + "/" + count);
 		// evaluate email content
 		let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
-		checkMessage(msgHdr, function(aMsgHdr, aRC) {
-			aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
-			if (aRC.phish)
-				flagged++;
-		});
+		checkMessage(msgHdr, cb);
 		pos++;
 	}
 	// status feedback
@@ -106,7 +102,7 @@ function scanFolder() {
 // get PhishDetect header object
 function getPhishDetectStatus(aMsgHdr) {
 	let field = aMsgHdr.getStringProperty("X-Custom-PhishDetect");
-	if (field == null || field.length == 0) {
+	if (field === null || field.length === 0) {
 		return null;
 	}
 	return JSON.parse(field);
@@ -115,7 +111,7 @@ function getPhishDetectStatus(aMsgHdr) {
 // check if a header is flagged for 'phishing'
 function checkForPhish(aMsgHdr) {
 	let rc = getPhishDetectStatus(aMsgHdr);
-	if (rc == null) {
+	if (rc === null) {
 		return false;
 	}
 	return rc.phish;
@@ -322,7 +318,7 @@ window.addEventListener("load", function load() {
 		messagePane.addEventListener("DOMContentLoaded", function(event) {
 			// check if email is tagged by PhishDetect
 			let hdr = gFolderDisplay.selectedMessage;
-			if (hdr != null && checkForPhish(hdr)) {
+			if (hdr !== null && checkForPhish(hdr)) {
 				// display sanitized message
 				showSanitizedMsg(hdr, event);
 			}

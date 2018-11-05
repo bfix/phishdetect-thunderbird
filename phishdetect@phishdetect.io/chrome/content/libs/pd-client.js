@@ -19,12 +19,15 @@
  */
 
 /*****************************************************************************
- * PhishDetect client library.
+ * BloomFilter instances for detection.
  *****************************************************************************/
 
-//----------------------------------------------------------------------
-// Preferences (key/value pairs of options)
-//----------------------------------------------------------------------
+var bfPositives = null;
+var bfNegatives = null;
+
+/*****************************************************************************
+ * Preferences (key/value pairs of options)
+ *****************************************************************************/
 
 // Get the PhishDetect preferences branch
 var prefs = Components.classes["@mozilla.org/preferences-service;1"]
@@ -38,16 +41,16 @@ function getPrefString(key) { return prefs.getCharPref(key); }
 function getPrefInt(key)    { return prefs.getIntPref(key); }
 function getPrefBool(key)   { return prefs.getBoolPref(key); }
 
-//----------------------------------------------------------------------
-// Node message exchange
-//----------------------------------------------------------------------
+/*****************************************************************************
+ * Node message exchange
+ *****************************************************************************/
 
 // Send JSON-encoded request and expect JSON-encoded response.
 function sendRequest(uri, method, req, handler) {
 	var prop = {
 		method: method
 	}
-	if (req != null) {
+	if (req !== null) {
 		prop.body = req;
 		prop.headers = { "Content-Type": "application/json" };
 	}
@@ -58,9 +61,9 @@ function sendRequest(uri, method, req, handler) {
 		.catch(error => { console.log(error); })
 }
 
-//----------------------------------------------------------------------
-// Service methods provided
-//----------------------------------------------------------------------
+/*****************************************************************************
+ * Service methods provided
+ *****************************************************************************/
 
 // fetch latest indicators
 function fetchIndicators() {
@@ -69,7 +72,27 @@ function fetchIndicators() {
 		"GET",
 		null,
 		function(response) {
+			// store indicators in preferences
 			prefs.setCharPref("indicators", JSON.stringify(response));
+			// add indicators to bloomfilter
+			var indList = []
+			if (response.domains !== null) {
+				for (var i = 0; i < response.domains.length; i++) {
+					indList.push(response.domains[i]);
+				}
+			}
+			if (response.senders !== null) {
+				for (i = 0; i < response.senders.length; i++) {
+					indList.push(response.senders[i]);
+				}
+			}
+			var numIndicators = indList.length;
+			if (numIndicators > 0) {
+				bfPositives = NewBloomFilter().init(numIndicators, 0.000001);
+				for (i = 0; i < numIndicators; i++) {
+					bfPositives.add(indList[i]);
+				}
+			}
 		}
 	);
 }
@@ -89,31 +112,226 @@ function sendEvent(eventType, indicator, hashed) {
 	);
 }
 
-//----------------------------------------------------------------------
-// Dissect and analyze email message (MIME format with headers)
-//----------------------------------------------------------------------
-
-var reasons = [
-	"Sender", "ReplyTo", "Sender domain", "Mail hops (1/2)",
-	"Links (3/15)", "Mail addresses (3/3)"
-];
-
-function inspectEMail(email) {
-	let list = [];
-	let rc = false;
-	if (Math.random() > 0.5) {
-		let a = Math.floor(Math.random() * 32);
-		let m = 1;
-		for (var i = 0; i < 6; i++) {
-			if ((a & m) != 0) {
-				list.push(reasons[i]);
-			}
-			m *= 2;
+// check if a string is contained in the list of indicators 
+function checkForIndicator(s) {
+	console.log("==> checkForIndicator(" + s + ")");
+	// create entry for lookup
+	var hash = sha256.create();
+	hash.update(s);
+	var indicator = hash.array();
+	
+	// check for entry in BloomFilter
+	if (bfPositives !== null && bfPositives.contains(indicator)) {
+		if (bfNegatives === null || !bfNegatives.contains(indicator)) {
+			return true;
 		}
-		rc = true;
 	}
+	return false;
+}
+
+/*****************************************************************************
+ * Dissect and analyze email message (MIME format with headers)
+ *****************************************************************************/
+
+// check domain
+function checkDomain(name) {
+	console.log("checkDomain(" + name + ")");
+	// check full hostname (subdomain+.domain)
+	if (checkForIndicator(name)) {
+		return true
+	}
+	// check effective top-level domain
+	return checkForIndicator(getDomainName(name));
+}
+
+// check email address
+function checkEmailAddress(addr) {
+	console.log("checkEmailAddress(" + addr + ")");
+	// normalize email address
+	var reg = new RegExp("<([^>]*)", "gim");
+	var result;
+	while ((result = reg.exec(addr)) !== null) {
+		addr = result[1];
+	}
+	console.log("=> " + addr);
+
+	// check if email address is an indicator.
+	if (checkForIndicator(addr)) {
+		return true;
+	}
+	// check domain
+	return checkDomain(addr.split("@")[1]);
+}
+
+// check mail hops
+function checkMailHop(hop) {
+	console.log("checkMailHop(" + hop + ")");
+	return false;
+}
+
+// check link
+function checkLink(link) {
+	console.log("checkLink(" + link + ")");
+	// check for email link
+	if (link.startsWith("mailto:")) {
+		return {
+			status: checkEmailAddress(link.substring(7)),
+			mode: "email"
+		}
+	}	
+	// check domain
+	var url = new URL(link);
 	return {
-		phish: rc,
+		status: checkDomain(url.hostname),
+		mode: "link"
+	}
+}
+
+// check MIME part of the email
+function checkMIMEPart(part, rc) {
+	// find MIME part to scan
+	var usePart = null;
+	var bodyType = null;
+	if (part.contentType == "multipart/alternative") {
+		for (var i = 0; i < part.parts.length; i++) {
+			if (usePart === null) {
+				usePart = part.parts[i];
+				bodyType = usePart.contentType;
+			}
+			if (part.parts[i].contentType == "text/html") {
+				usePart = part.parts[i];
+				bodyType = usePart.contentType;
+			}
+		}			
+	}
+	if (usePart === null || usePart.body === null || bodyType === null) {
+		console.log("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
+		return;
+	}
+	
+	// shared code to process links
+	var processLink = function(link,rc) {
+		var res = checkLink(link);
+		switch (res.mode) {
+		case "email":
+			rc.totalEmail++;
+			if (res.status) {
+				rc.countEmail++;
+			}
+			break;
+		case "link":
+			rc.totalLinks++;
+			if (res.status) {
+				rc.countLinks++;
+			}
+			break;
+		}
+	}
+	// console.log("checkMIMEPart() body=" + usePart.body);
+	var reg, result;
+	if (bodyType == "text/html") {
+		// scan HTML content for links
+		reg = new RegExp("<a\\s*href=([^\\s>]*)", "gim");
+		while ((result = reg.exec(usePart.body)) !== null) {
+			var link = result[1].replace(/^["']?|["']?$/gm,'');
+			processLink(link,rc);
+		}
+	} else if (bodyType == "text/plain") {
+		// scan plain text
+		reg = new RegExp("\\s?((http|https|ftp)://[^\\s<]+[^\\s<\.)])", "gim");
+		while ((result = reg.exec(usePart.body)) !== null) {
+			processLink(result[1],rc);
+		}
+	}
+}
+
+/*****************************************************************************
+ * Dissect and analyze email message (MIME format with headers)
+ *****************************************************************************/
+
+// process a MIME message object
+function inspectEMail(email) {
+	var list = [];
+
+	// check sender(s) of email
+	// console.log(JSON.stringify(email.headers));
+	var count = 0;
+	var total = 1;
+	if (checkEmailAddress(email.headers.from)) {
+		count++;
+	}
+	if (email.headers.sender !== undefined) {
+		total += email.headers.sender.length; 
+		email.headers.sender.forEach(sender => {
+			if (checkEmailAddress(sender)) {
+				count++;
+			}
+		});
+	}
+	if (count > 0) {
+		list.push("Sender (" + count + "/" + total + ")");
+		count = 0;
+	}
+	
+	// check reply-to and return path elements
+	total = 0;
+	if (email.headers["reply-to"] !== undefined) {
+		total = 1;
+		if (checkEmailAddress(email.headers["reply-to"])) {
+			count++;
+		}
+	}
+	if (email.headers["return-path"] !== undefined) {
+		total += email.headers["return-path"].length;
+		email.headers["return-path"].forEach(replyTo => {
+			if (checkEmailAddress(replyTo)) {
+				count++;
+			}
+		});
+	}
+	if (count > 0) {
+		list.push("ReplyTo (" + count + "/" + total + ")");
+		count = 0;
+	}
+	
+	// check mail hops
+	total = 0;
+	if (email.headers.received !== undefined) {
+		total += email.headers.received.length;
+		email.headers.received.forEach(hop => {
+			if (checkMailHop(hop)) {
+				count++;
+			}
+		});
+	}
+	if (email.headers["x-received"] !== undefined) {
+		total += email.headers["x-received"].length;
+		email.headers["x-received"].forEach(hop => {
+			if (checkMailHop(hop)) {
+				count++;
+			}
+		});
+	}
+	if (count > 0) {
+		list.push("Mail hops (" + count + "/" + total + ")");
+		count = 0;
+	}
+
+	// inspect MIME parts
+	var rc = { countLinks: 0, totalLinks: 0, countEmail: 0, totalEmail: 0 }
+	email.parts.forEach(part => {
+		checkMIMEPart(part, rc);
+	});
+	if (rc.countLinks > 0) {
+		list.push("Links (" + rc.countLinks + "/" + rc.totalLinks + ")");
+	}
+	if (rc.countEmail > 0) {
+		list.push("Email addresses (" + rc.countEmail + "/" + rc.totalEmail + ")");
+	}
+	
+	// return inspection result
+	return {
+		phish: (list.length > 0),
 		date: Date.now(),
 		indications: list
 	}
