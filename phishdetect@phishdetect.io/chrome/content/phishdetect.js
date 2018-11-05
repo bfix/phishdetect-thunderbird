@@ -44,7 +44,7 @@ async function checkMessage(aMsgHdr, aCallback) {
 				null,
 				function (aMsgHdr, aMimeMsg) {
 					// evaluate body by PhishDetect engine.
-					let rc = evaluateMessage(aMimeMsg);
+					let rc = inspectEMail(aMimeMsg);
 					// callback to invoker
 					aCallback(aMsgHdr, rc);
 					// fulfill promise
@@ -67,8 +67,8 @@ function scanEmail() {
 	statusMsg('Evaluating email...');
 	var hdr = gFolderDisplay.selectedMessage;
 	checkMessage(hdr, function(aMsgHdr, aRC) {
-		aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
-		statusMsg(aRC == 'true' ? "Suspicious email content!" : "Email looks clean");
+		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
+		statusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
 	});
 }
 
@@ -93,14 +93,32 @@ function scanFolder() {
 		// evaluate email content
 		let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
 		checkMessage(msgHdr, function(aMsgHdr, aRC) {
-			aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
-			if (aRC == 'true')
+			aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
+			if (aRC.phish)
 				flagged++;
 		});
 		pos++;
 	}
 	// status feedback
 	statusMsg('Evaluated ' + count + ' emails in folder: ' + flagged + ' suspicious.');
+}
+
+// get PhishDetect header object
+function getPhishDetectStatus(aMsgHdr) {
+	let field = aMsgHdr.getStringProperty("X-Custom-PhishDetect");
+	if (field == null || field.length == 0) {
+		return null;
+	}
+	return JSON.parse(field);
+}
+
+// check if a header is flagged for 'phishing'
+function checkForPhish(aMsgHdr) {
+	let rc = getPhishDetectStatus(aMsgHdr);
+	if (rc == null) {
+		return false;
+	}
+	return rc.phish;
 }
 
 /*****************************************************************************
@@ -113,7 +131,7 @@ var newMailListener = {
 	msgAdded: function(aMsgHdr) {
 		if (!aMsgHdr.isRead) {
 			checkMessage(aMsgHdr, function(aMsgHdr, aRC) {
-				aMsgHdr.setStringProperty("X-Custom-PhishDetect", aRC);
+				aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 			});
 		}
 	}
@@ -130,9 +148,8 @@ function sanitize(node) {
 	switch (node.nodeName) {
 		case 'A':
 			// save and reset link target
-			let oldHref = node.getAttribute('href');
-			node.setAttribute('href_old', oldHref);
-			node.setAttribute('href',' ');
+			node.oldHref = node.href;
+			node.href = ' ';
 			// visually tag blocked links
 			let text = node.innerHTML;
 			node.innerHTML = "[<span style='color: #f00; font-weight: bold;'>BLOCKED</span>:"+text+"]";
@@ -151,6 +168,7 @@ function showSanitizedMsg(aMsgHdr, aEvent) {
 	// go through the message body and sanitize it
 	let browser = window.document.getElementById('messagepane');
 	let doc = browser.contentDocument;
+	// TODO: check obsolence of getAttribute
 	if (doc.body.getAttribute('phishdetect') != 'true') {
 		// only process once...
 		doc.body.setAttribute('phishdetect','true');
@@ -170,7 +188,7 @@ var pdColumnHandler = {
 	},
 	getSortStringForRow: function(row) {
 		let hdr = gDBView.getMsgHdrAt(row);
-		return hdr.getStringProperty("X-Custom-PhishDetect");
+		return ""+checkForPhish(hdr);
 	},
 	isString: function() {
 		return true;
@@ -181,8 +199,7 @@ var pdColumnHandler = {
 	},
 	getImageSrc: function(row, col) {
 		let hdr = gDBView.getMsgHdrAt(row);
-		let status = hdr.getStringProperty("X-Custom-PhishDetect");
-		if (status == 'true')
+		if (checkForPhish(hdr))
 			return "chrome://phishdetect/content/icon16.png";
 		return null;
 	},
@@ -205,6 +222,34 @@ var pdObserver = {
 // Display message on Thunderbird status bar.
 function statusMsg(msg) {
 	document.getElementById("statusText").label = "PhishDetect: " + msg;
+}
+
+/*****************************************************************************
+ * Handle notification bar functionality:
+ * - expand/hide of details
+ * - unblock links
+ *****************************************************************************/
+
+// toggle show/hide details
+function showDetails(reset) {
+	let btn = document.getElementById("pd-details");
+	let details = document.getElementById("pd-indications");
+	if (reset || btn.getAttribute('data-state') == "1") {
+		btn.setAttribute("data-state", "0");
+		btn.label = "Show Details";
+		details.collapsed = true;
+	} else {
+		btn.setAttribute("data-state", "1");
+		btn.label = "Hide Details";
+		details.collapsed = false;
+	}
+}
+
+// unblock links
+function unblockLinks() {
+	let btn = document.getElementById("pd-block");
+	alert("Unblocking links... (can only run once!)");
+	btn.collapsed = true;
 }
 
 /*****************************************************************************
@@ -236,14 +281,28 @@ window.addEventListener("load", function load() {
 			gMessageListeners.push({
 				onStartHeaders: function() {
 					// default is no PhishDetect notification bar
-					document.getElementById('pd-deck').setAttribute('collapsed', 'true');
+					document.getElementById('pd-deck').collapsed = true;
+					showDetails(true)
+					document.getElementById("pd-block").collapsed = false;
+					for (var i = 0; i < 6; i++) {
+						document.getElementById('pd-reason-'+i).collapsed = true;
+					}
 				},
 				onEndHeaders: function() {
 					// check if email is tagged by PhishDetect
 					let hdr = gFolderDisplay.selectedMessage;
-					if (hdr.getStringProperty("X-Custom-PhishDetect") == "true") {
+					let rc = getPhishDetectStatus(hdr);
+					if (rc.phish) {
+						// set notification bar content
+						let ts = new Date(rc.date);
+						document.getElementById('pd-scan-date').innerHTML = "Indications (found on " + ts + "):";
+						for (var i = 0; i < rc.indications.length; i++) {
+							var txt = document.getElementById('pd-reason-'+i);
+							txt.innerHTML = rc.indications[i];
+							txt.collapsed = false;
+						}
 						// show PhishDetect notification bar
-						document.getElementById('pd-deck').setAttribute('collapsed', 'false');
+						document.getElementById('pd-deck').collapsed = false;
 					}
 				},
 				onStartAttachments: function() {},
@@ -256,14 +315,14 @@ window.addEventListener("load", function load() {
 		
 		// (2) close PhishDetect notification bar when message pane is unloaded
 		messagePane.addEventListener("unload", function(event) {
-			document.getElementById('pd-deck').setAttribute('collapsed', 'true');
+			document.getElementById('pd-deck').collapsed = true;
 		}, true);
 
 		// (3) when DOM content of the email is loaded
 		messagePane.addEventListener("DOMContentLoaded", function(event) {
 			// check if email is tagged by PhishDetect
 			let hdr = gFolderDisplay.selectedMessage;
-			if (hdr != null && hdr.getStringProperty("X-Custom-PhishDetect") == "true") {
+			if (hdr != null && checkForPhish(hdr)) {
 				// display sanitized message
 				showSanitizedMsg(hdr, event);
 			}

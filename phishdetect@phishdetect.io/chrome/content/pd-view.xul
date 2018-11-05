@@ -11,17 +11,34 @@
 
 	<rows id="msgNotificationBar">
 		<row id="pd-deck" collapsed="true">
-			<hbox id="pd-notification" flex="1" class="msgNotificationBar" align="center">
-	    		<image id="pd-view-img" src="chrome://phishdetect/content/icon48-w.png"/>
-	    		<vbox flex="1">
-	      			<description flex="1" class="msgNotificationBarText">PhishDetect</description>
-	      			<description flex="1" class="msgNotification-smallText">
-						Possible phishing email detected. All links in the message have been BLOCKED.
-					</description>
+			<vbox flex="1">
+				<vbox flex="1">
+					<hbox id="pd-notification" flex="1" class="msgNotificationBar" align="center">
+			    		<image id="pd-view-img" src="chrome://phishdetect/content/icon48-w.png"/>
+			    		<vbox flex="1">
+			      			<description flex="1" class="msgNotificationBarText">PhishDetect</description>
+			      			<description flex="1" class="msgNotification-smallText">
+								Possible phishing email detected. All links in the message have been BLOCKED.
+							</description>
+						</vbox>
+						<button id="pd-details" label="Show Details" data-state="0" oncommand="showDetails(false);"/>
+						<button id="pd-block" label="Unblock links" oncommand="unblockLinks();"/>
+					</hbox>
 				</vbox>
-				<button label="Details" oncommand="alert('...showing details...');"/>
-				<button label="Unblock" oncommand="alert('...unblocking links...');"/>
-	  		</hbox>
+				<vbox id="pd-indications" flex="1" collapsed="true">
+	      			<description id="pd-scan-date" flex="1" class="msgNotificationBarText"/>
+	      			<description>The following elements of the email have been identified as a possible phishing attempt:</description>
+	      			<spacer flex="1"/>
+	      			<hbox flex="1">
+		      			<button id="pd-reason-0" collapsed="true"/>
+		      			<button id="pd-reason-1" collapsed="true"/>
+		      			<button id="pd-reason-2" collapsed="true"/>
+		      			<button id="pd-reason-3" collapsed="true"/>
+		      			<button id="pd-reason-4" collapsed="true"/>
+		      			<button id="pd-reason-5" collapsed="true"/>
+	      			</hbox>
+			  	</vbox>
+		  	</vbox>
 	  	</row>
 	</rows>
 </overlay>

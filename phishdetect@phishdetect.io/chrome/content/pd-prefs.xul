@@ -15,6 +15,7 @@
 			<description>
 				Specify the parameters for the PhishDetect node you connect to:
 			</description>
+			<spacer flex="1"/>
 			<hbox align="center">
 				<label control="pd-pref-url" value="Node URL:"/>
 				<textbox id="pd-pref-url" preference="pref-url" placeholder="Enter a URL..."/>
@@ -29,6 +30,7 @@
 			<description>
 				Send incident reports to node.
 			</description>
+			<spacer flex="1"/>
 			<checkbox label="Enable reporting" preference="pref-reports" checked="false"/>
 			<hbox align="center">
 				<label control="pd-pref-contact" value="User:"/>

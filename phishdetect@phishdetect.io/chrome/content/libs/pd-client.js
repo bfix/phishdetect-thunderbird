@@ -24,26 +24,70 @@ function getPrefBool(key)   { return prefs.getBoolPref(key); }
 //----------------------------------------------------------------------
 
 // Send JSON-encoded request and expect JSON-encoded response.
-function sendRequest(req, uri) {
-	var resp = null;
+function sendRequest(uri, method, req, handler) {
+	var prop = {
+		method: method
+	}
+	if (req != null) {
+		prop.body = req;
+		prop.headers = { "Content-Type": "application/json" };
+	}
 	var url = getPrefString("node_url") + uri;
-	fetch(url)
-		.then(function(raw) {
-			return raw.json();
-		})
-		.then(function(response) {
-			resp = response;
-		});
-	return resp;
+	fetch(url, prop)
+		.then((response) => response.json())
+		.then(handler)
+		.catch(error => { console.log(error); })
 }
 
 //----------------------------------------------------------------------
 // Service methods provided
 //----------------------------------------------------------------------
 
-// fetch latest indicators (bloomfilters)
+// fetch latest indicators
 function fetchIndicators() {
-	var uri = "/api/indicators/fetch";
-	var indicators = sendRequest('', uri);
-	prefs.setCharPref("indicators", indicators);
+	sendRequest(
+		"/api/indicators/fetch/",
+		"GET",
+		null,
+		function(response) {
+			prefs.setCharPref("indicators", JSON.stringify(response));
+		}
+	);
+}
+
+// send a notification about found indicator
+function sendEvent(eventType, indicator, hashed) {
+	sendRequest(
+		"/api/events/add/",
+		"POST",
+		JSON.stringify({
+			"type": eventType,
+			"indicator": indicator,
+			"hashed": hashed,
+			"target_contact": getPrefString("contact")
+		}),
+		function(response) {}
+	);
+}
+
+//----------------------------------------------------------------------
+// Dissect and analyze email message (MIME format with headers)
+//----------------------------------------------------------------------
+
+function inspectEMail(email) {
+	if (Math.random() > 0.5) {
+		return {
+			phish: true,
+			date: Date.now(),
+			indications: [
+				"Sender", "ReplyTo", "Sender domain", "Mail hops (1/2)",
+				"Links (3/15)", "Mail addresses (3/3)"
+			]
+		}
+	}
+	return {
+		phish: false,
+		date: Date.now(),
+		indications: []
+	}
 }
