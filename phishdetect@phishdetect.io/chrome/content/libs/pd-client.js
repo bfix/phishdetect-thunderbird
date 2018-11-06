@@ -378,6 +378,13 @@ function inspectEMail(email) {
 		list.push("Email addresses (" + rc.countEmail + "/" + rc.totalEmail + ")");
 	}
 	
+	// DEMO mode:
+	if (getPrefBool("demo") && list.length == 0) {
+		if (Math.random() < 0.2) {
+			list.push("DEMO modus -- not based on detection!");
+		}
+	}
+	
 	// return inspection result
 	return {
 		phish: (list.length > 0),
