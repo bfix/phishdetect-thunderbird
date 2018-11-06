@@ -81,16 +81,21 @@ function fetchIndicators() {
 					indList.push(response.domains[i]);
 				}
 			}
-			if (response.senders !== null) {
-				for (i = 0; i < response.senders.length; i++) {
-					indList.push(response.senders[i]);
+			if (response.emails !== null) {
+				for (i = 0; i < response.emails.length; i++) {
+					indList.push(response.emails[i]);
 				}
 			}
 			var numIndicators = indList.length;
 			if (numIndicators > 0) {
 				bfPositives = NewBloomFilter().init(numIndicators, 0.000001);
-				for (i = 0; i < numIndicators; i++) {
-					bfPositives.add(indList[i]);
+				if (!bfPositives.valid) {
+					console.error("Can't create bloomfilter instance");
+					bfPositives = null;
+				} else {
+					for (i = 0; i < numIndicators; i++) {
+						bfPositives.add(indList[i]);
+					}
 				}
 			}
 		}
@@ -114,7 +119,7 @@ function sendEvent(eventType, indicator, hashed) {
 
 // check if a string is contained in the list of indicators 
 function checkForIndicator(s) {
-	console.log("==> checkForIndicator(" + s + ")");
+	// console.log("==> checkForIndicator(" + s + ")");
 	// create entry for lookup
 	var hash = sha256.create();
 	hash.update(s);
@@ -135,43 +140,60 @@ function checkForIndicator(s) {
 
 // check domain
 function checkDomain(name) {
-	console.log("checkDomain(" + name + ")");
+	// console.log("checkDomain(" + name + ")");
 	// check full hostname (subdomain+.domain)
 	if (checkForIndicator(name)) {
 		return true
 	}
 	// check effective top-level domain
-	return checkForIndicator(getDomainName(name));
+	var tld = getDomainName(name);
+	if (tld == name) {
+		return false;
+	}
+	return checkForIndicator(tld);
 }
 
 // check email address
 function checkEmailAddress(addr) {
-	console.log("checkEmailAddress(" + addr + ")");
+	// check if addr is a list of addresses
+	if (Array.isArray(addr)) {
+		for (var i = 0; i < addr.length; i++) {
+			checkEmailAddress(addr[i]);
+		}
+		return;
+	}
+	// console.log("checkEmailAddress(" + addr + ")");
 	// normalize email address
 	var reg = new RegExp("<([^>]*)", "gim");
 	var result;
 	while ((result = reg.exec(addr)) !== null) {
 		addr = result[1];
 	}
-	console.log("=> " + addr);
+	// console.log("=> " + addr);
 
 	// check if email address is an indicator.
 	if (checkForIndicator(addr)) {
 		return true;
 	}
-	// check domain
-	return checkDomain(addr.split("@")[1]);
+	// check email domain
+	var domain;
+	try {
+		domain = addr.split("@")[1];
+	} catch(error) {
+		console.error("addr=" + addr);
+	}
+	return checkDomain(domain);
 }
 
 // check mail hops
 function checkMailHop(hop) {
-	console.log("checkMailHop(" + hop + ")");
+	// console.log("checkMailHop(" + hop + ")");
 	return false;
 }
 
 // check link
 function checkLink(link) {
-	console.log("checkLink(" + link + ")");
+	// console.log("checkLink(" + link + ")");
 	// check for email link
 	if (link.startsWith("mailto:")) {
 		return {
@@ -188,24 +210,50 @@ function checkLink(link) {
 }
 
 // check MIME part of the email
-function checkMIMEPart(part, rc) {
+function checkMIMEPart(part, rc, skip) {
 	// find MIME part to scan
 	var usePart = null;
 	var bodyType = null;
-	if (part.contentType == "multipart/alternative") {
-		for (var i = 0; i < part.parts.length; i++) {
-			if (usePart === null) {
-				usePart = part.parts[i];
-				bodyType = usePart.contentType;
+	switch (part.contentType) {
+		// plain text or HTML email
+		case "text/plain":
+		case "text/html":
+			usePart = part;
+			bodyType = part.contentType;
+			break;
+		// plain text / HTML alternatives
+		case "multipart/alternative":
+			for (var i = 0; i < part.parts.length; i++) {
+				if (part.parts[i].contentType == "text/plain" && usePart === null) {
+					usePart = part.parts[i];
+					bodyType = usePart.contentType;
+				}
+				if (part.parts[i].contentType == "text/html") {
+					usePart = part.parts[i];
+					bodyType = usePart.contentType;
+				}
+			}			
+			break;
+		// handle composite parts
+		case "multipart/report":
+		case "multipart/signed":
+		case "multipart/mixed":
+			// process all parts
+			for (var i = 0; i < part.parts.length; i++) {
+				checkMIMEPart(part.parts[i], rc, true);
 			}
-			if (part.parts[i].contentType == "text/html") {
-				usePart = part.parts[i];
-				bodyType = usePart.contentType;
+			return;
+		default:
+			console.log("Skipped MIME type: " + part.contentType);
+			for (var i = 0; i < part.parts.length; i++) {
+				console.log("==> " + part.parts[i].contentType);
 			}
-		}			
+			break;
 	}
 	if (usePart === null || usePart.body === null || bodyType === null) {
-		console.log("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
+		if (!skip) {
+			console.error("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
+		}
 		return;
 	}
 	
@@ -251,6 +299,7 @@ function checkMIMEPart(part, rc) {
 
 // process a MIME message object
 function inspectEMail(email) {
+	console.log("inspectEMail(): " + email.headers.from);
 	var list = [];
 
 	// check sender(s) of email
@@ -320,7 +369,7 @@ function inspectEMail(email) {
 	// inspect MIME parts
 	var rc = { countLinks: 0, totalLinks: 0, countEmail: 0, totalEmail: 0 }
 	email.parts.forEach(part => {
-		checkMIMEPart(part, rc);
+		checkMIMEPart(part, rc, false);
 	});
 	if (rc.countLinks > 0) {
 		list.push("Links (" + rc.countLinks + "/" + rc.totalLinks + ")");

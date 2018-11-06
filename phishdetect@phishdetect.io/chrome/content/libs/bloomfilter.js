@@ -46,6 +46,7 @@ function NewBloomFilter(obj) {
 		// initialize BloomFilter from number of entries and upper-bound
 		// of the "false-positive" rate.
 		init: function(numEntries, fpRate) {
+			console.log("BloomFilter.init(" + numEntries + "," + fpRate + ")");
 			let numIdx = Math.ceil(-Math.log2(fpRate));
 			let numBits = Math.ceil((numIdx*numEntries) / Math.LN2);
 			this.initDirect(numBits, numIdx);
@@ -56,11 +57,12 @@ function NewBloomFilter(obj) {
 		// indices. N.B.: This implementation can only handle a maximum
 		// of 512 index bits = numIdx * ceil(log2(numBits))!!!
 		initDirect: function(numBits, numIdx) {
+			console.log("BloomFilter.initDirect(" + numBits + "," + numIdx + ")");
 			let numIdxBits = Math.ceil(Math.log2(numBits));
 			this.numBits = numBits;
 			this.numIdx = numIdx;
 			this.numIdxBits = numIdxBits;
-			this.bits = new Uint8Array((numBits+7)/8);
+			this.bits = new Uint8Array((numBits+7) >> 3);
 			this.valid = (numIdxBits * numIdx <= 512);
 			return this;
 		},

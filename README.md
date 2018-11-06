@@ -29,7 +29,7 @@ This repository contains the Thunderbird extension for PhishDetect that
 detects and blocks links in emails based on the analysis of suspicious
 links, email addresses, domain names, mail hops and web pages. 
 
-**This is experimental software! Do not use in a production environment!***
+**This is experimental software! Do not use in a production environment!**
 
 ### Preparing for installation
 
