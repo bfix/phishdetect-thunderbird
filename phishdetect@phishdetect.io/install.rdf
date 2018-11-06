@@ -7,10 +7,11 @@
     <em:version>1.0</em:version>
     <em:iconURL>chrome://phishdetect/content/icon48.png</em:iconURL>
     <em:icon64URL>chrome://phishdetect/content/icon64.png</em:icon64URL>
-    <em:creator>phishdetect.io</em:creator>
+    <em:creator>Bernd Fix</em:creator>
     <em:homepageURL>https://phishdetect.io/</em:homepageURL>
-    <em:developer>Bernd Fix</em:developer>
-    <em:developer>Claudio Guarnieri</em:developer>
+    <em:developer>Claudio Guarnieri (PhishDetect)</em:developer>
+    <em:developer>Chen, Yi-Cyuan (SHA256)</em:developer>
+    <em:developer>David Chambers (Base64)</em:developer>
     <em:optionsURL>chrome://phishdetect/content/pd-prefs.xul</em:optionsURL>
     <em:targetApplication>
       <Description>
