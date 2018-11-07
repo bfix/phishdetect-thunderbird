@@ -16,29 +16,48 @@ Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-**This software is part of the PhishDetect project.**
+This repository contains the Thunderbird extension for **PhishDetect** that
+detects and blocks links in emails based on the analysis of the email content
+(links, email addresses, domain names, mail hops and more). 
+
+### About the PhishDetect project
+
+**PhishDetect** is a tool to help at-risk users to identify potential phishing
+attacks. It is able to automatically analyze suspicious links and web pages
+and in few seconds alert of suspect phishing.
 
 The **PhishDetect** [project](https://phishdetect.io) and its
 [repositories](https://github.com/phishdetect) are developed and
-maintained by Claudio Guarnieri. For more information about the
-project and its objectives see the referenced websites.
+maintained by Claudio Guarnieri. More information about the
+project and its objectives can be found on the referenced websites.
 
-## A Thunderbird extension for PhishDetect 
+## Installation
 
-This repository contains the Thunderbird extension for PhishDetect that
-detects and blocks links in emails based on the analysis of suspicious
-links, email addresses, domain names, mail hops and web pages. 
+### Preparing for installation (optional)
 
-**This is experimental software! Do not use in a production environment!**
+To get the top-level domain name (stripped of all sub-domains), the extension
+uses a [trie data structure](https://en.wikipedia.org/wiki/Trie) to keep a
+list of all "registered" public suffixes. Since the list changes over time,
+you might want to create a newer list:
 
-### Preparing for installation
+````bash
+cd helpers
+go build -o gen-tldTrie gen-tldTrie.go
+./gen-tldTrie
+````
 
-Change into the `phishdetect@phishdetect.io` folder and create a ZIP archive
-of all files and folders in that directory. On Linux you can run:
+The created list is stored in `tldTrie.json`. Replace the existing list
+in `extension/chrome/lib/tld.js` (at line `var tldTrie = `) with the
+content of the JSON file.
+
+### Packaging the extension
+
+Change into the `extension` folder and create a ZIP archive of all files and
+folders in that directory. On Linux you can run:
 
 ```bash
-cd phishdetect\@phishdetect.io
+cd extension
 zip -r ../phishdetect.xpi .
 ```
-This creates an installer file for Thunderbird in the base directory of this
+This creates an installer file for Thunderbird in the base directory of the
 repository.
