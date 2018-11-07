@@ -1154,8 +1154,7 @@ function getDomainName(name) {
 		var lvl = levels[i];
 		var n = node[lvl];
 		if (n === undefined) {
-			match = lvl + "." + match;
-			break;
+			return lvl + "." + match;
 		}
 		if (match.length > 0) {
 			match = "." + match;

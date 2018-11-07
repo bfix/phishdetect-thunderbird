@@ -40,15 +40,27 @@ uses a [trie data structure](https://en.wikipedia.org/wiki/Trie) to keep a
 list of all "registered" public suffixes. Since the list changes over time,
 you might want to create a newer list:
 
-````bash
+```bash
 cd helpers
 go build -o gen-tldTrie gen-tldTrie.go
 ./gen-tldTrie
-````
+```
 
 The created list is stored in `tldTrie.json`. Replace the existing list
 in `extension/chrome/lib/tld.js` (at line `var tldTrie = `) with the
 content of the JSON file.
+
+You can test the generated list with some domain names:
+
+```bash
+./gen-tldTrie -i tldTrie.json -c mail.google.co.uk,example.blogspot.co.uk,www.sub.test.gov
+Reading JSON file...
+Unmarshalling object...
+Lookup:
+    mail.google.co.uk ==> google.co.uk
+    example.blogspot.co.uk ==> example.blogspot.co.uk
+    www.sub.test.gov ==> test.gov
+```
 
 ### Packaging the extension
 

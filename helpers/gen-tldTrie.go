@@ -24,7 +24,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -66,7 +68,7 @@ func (t TrieNode) Lookup(s string) string {
 		lvl := levels[i-1]
 		n, ok := currNode[lvl]
 		if !ok {
-			return match
+			return lvl + "." + match
 		}
 		if len(match) > 0 {
 			match = "." + match
@@ -84,22 +86,51 @@ func (t TrieNode) Lookup(s string) string {
 // command-line arguments
 var (
 	url     string // URL of public suffix list
+	inFile  string // JSON input file (optional)
 	outFile string // JSON output file
+	check   string // comma-separated list of domain names
 )
 
 func main() {
 	// process command line arguments
-	flag.StringVar(&url, "i", "https://publicsuffix.org/list/public_suffix_list.dat", "URL for public suffix list")
+	flag.StringVar(&url, "u", "https://publicsuffix.org/list/public_suffix_list.dat", "URL for public suffix list")
+	flag.StringVar(&inFile, "i", "", "Input JSON file")
 	flag.StringVar(&outFile, "o", "tldTrie.json", "Output JSON file")
+	flag.StringVar(&check, "c", "", "Check domain name(s)")
 	flag.Parse()
 
-	// create Trie root node
 	root := make(TrieNode)
+
+	//------------------------------------------------------------------
+	// If an input JSON is specified, we assume a "test" run with
+	// domain names to check.
+	//------------------------------------------------------------------
+	if len(inFile) > 0 {
+		// read input file
+		fmt.Println("Reading JSON file...")
+		data, err := ioutil.ReadFile(inFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// convert to trie object
+		fmt.Println("Unmarshalling object...")
+		if err := json.Unmarshal(data, &root); err != nil {
+			log.Fatal(err)
+		}
+		// lookup all domain names
+		fmt.Println("Lookup:")
+		for _, s := range strings.Split(check, ",") {
+			s = strings.TrimSpace(s)
+			fmt.Println("    " + s + " ==> " + root.Lookup(s))
+		}
+		return
+	}
 
 	//------------------------------------------------------------------
 	// The list of "registered" top-level domains is pulled live from
 	// "https://publicsuffix.org/list/public_suffix_list.dat"
 	//------------------------------------------------------------------
+
 	response, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
