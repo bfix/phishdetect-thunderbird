@@ -146,6 +146,9 @@ function fetchIndicators(callback) {
 			// add indicators to database
 			pdDatabase.addIndicators(response.domains, 1, callback);
 			pdDatabase.addIndicators(response.emails, 2, callback);
+			
+			// update timestamp in preferences
+			prefs.setIntPref('node_sync_last', Math.floor(Date.now() / 60000));
 		}
 	);
 }

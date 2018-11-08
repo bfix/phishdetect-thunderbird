@@ -3,15 +3,24 @@
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet type="text/css" href="chrome://messenger/skin/preferences/preferences.css"?>
 
-<prefwindow title="PhishDetect Prefs" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-	<prefpane id="pd-prefs-pane" label="General">
+<prefwindow title="PhishDetect Prefs" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	button="accept,cancel" ondialogaccept="return pdPrefsPane.validate();">
+	
+	<prefpane id="pd-prefs-pane" label="General" onpaneload="pdPrefsPane.init();">
+
+		<script type="text/javascript" src="chrome://phishdetect/content/pd-prefs.js"/> 
+
 		<preferences>
-			<preference id="pref-url" name="extensions.phishdetect.node_url" type="string"/>
-			<preference id="pref-sync" name="extensions.phishdetect.node_sync" type="int"/>
-			<preference id="pref-reports" name="extensions.phishdetect.reporting" type="bool"/>
-			<preference id="pref-contact" name="extensions.phishdetect.contact" type="string"/>
+			<preference id="pref-node-url" name="extensions.phishdetect.node_url" type="string"/>
+			<preference id="pref-node-sync" name="extensions.phishdetect.node_sync" type="int"/>
+			<preference id="pref-node-sync-last" name="extensions.phishdetect.node_sync_last" type="int"/>
+			<preference id="pref-reports" name="extensions.phishdetect.reports" type="bool"/>
+			<preference id="pref-reports-sync" name="extensions.phishdetect.reports_sync" type="int"/>
+			<preference id="pref-reports-sync-last" name="extensions.phishdetect.reports_sync_last" type="int"/>
+			<preference id="pref-reports-contact" name="extensions.phishdetect.reports_contact" type="string"/>
 			<preference id="pref-demo" name="extensions.phishdetect.demo" type="bool"/>
 		</preferences>
+
 		<tabbox>
 			<tabs>
 				<tab label="Node"/>
@@ -22,25 +31,54 @@
 			<tabpanels>
 				<tabpanel orient="vertical">
 					<hbox align="center">
-						<label control="pd-pref-url" value="Node URL:"/>
-						<textbox id="pd-pref-url" preference="pref-url" placeholder="Enter a URL..."/>
+						<spacer/>
+						<label control="pd-pref-node-url" value="Node URL:"/>
+						<textbox id="pd-pref-node-url" preference="pref-node-url" placeholder="Enter a URL..."
+							onchange="pdPrefsPane.changed('node-url');"/>
 					</hbox>
 					<hbox align="center">
-						<label control="pd-pref-sync" value="Update interval (min):"/>
-						<textbox id="pd-pref-sync" preference="pref-sync" width="50" placeholder="60"/>
+						<spacer/>
+						<label control="pd-pref-node-sync" value="Update interval (min):"/>
+						<textbox id="pd-pref-node-sync" preference="pref-node-sync" width="150" placeholder="60"
+							onchange="pdPrefsPane.changed('node-sync');"/>
+					</hbox>
+					<hbox align="center">
+						<spacer/>
+						<label id="pd-pref-node-sync-last" value="Last sync: "/>
 					</hbox>
 				</tabpanel>
 				<tabpanel orient="vertical">
 					<checkbox id="pd-pref-reports" label="Enable reporting" preference="pref-reports" checked="false"/>
 					<hbox align="center">
-						<label control="pd-pref-contact" value="User:"/>
-						<textbox id="pd-pref-contact" preference="pref-contact" placeholder="Enter a user name..."/>
+						<spacer/>
+						<label control="pd-pref-reports-sync" value="Auto send report:"/>
+						<menulist id="pd-pref-reports-sync" preference="pref-reports-sync">
+							<menupopup>
+								<menuitem label="Disabled" value="0"/>
+								<menuitem label="once a day" value="1"/>
+								<menuitem label="once a week" value="7"/>
+								<menuitem label="once a month" value="30"/>
+							</menupopup>
+						</menulist>
+					</hbox>
+					<hbox align="center">
+						<label id="pd-pref-reports-sync-last" value="Last sync: "/>
+					</hbox>
+					<hbox align="center">
+						<label control="pd-pref-reports-contact" value="User:"/>
+						<textbox id="pd-pref-reports-contact" preference="pref-reports-contact" placeholder="Enter a user name..."
+							onchange="pdPrefsPane.changed('reports-contact');"/>
 					</hbox>
 				</tabpanel>
 				<tabpanel orient="vertical">
 					<checkbox id="pd-prefs-demo" label="Demo modus" preference="pref-demo" checked="false"/>
 				</tabpanel>
+				<tabpanel>
+					<textbox id="pd-pref-node-sync-last-value" preference="pref-node-sync-last" readonly="true"/>
+					<textbox id="pd-pref-reports-sync-last-value" preference="pref-reports-sync-last" readonly="true"/>
+				</tabpanel>
 			</tabpanels>
 		</tabbox>
 	</prefpane>
+	
 </prefwindow>
