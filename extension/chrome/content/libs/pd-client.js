@@ -19,20 +19,31 @@
  */
 
 /*****************************************************************************
+ * Simplified access to components.
+ *****************************************************************************/
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
+
+/*****************************************************************************
  * BloomFilter instances for detection.
  *****************************************************************************/
 
+/* @@@ Bloomfilter
 var bfPositives = null;
 var bfNegatives = null;
+*/
 
 /*****************************************************************************
  * Preferences (key/value pairs of options)
  *****************************************************************************/
 
-// Get the PhishDetect preferences branch
-var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                    .getService(Components.interfaces.nsIPrefService)
-                    .getBranch("extensions.phishdetect.");
+ // Get the PhishDetect preferences branch
+var prefs = Cc["@mozilla.org/preferences-service;1"]
+				.getService(Ci.nsIPrefService)
+				.getBranch("extensions.phishdetect.");
 
 // Get a preference value for a given key.
 // Setter methods are not provided; changes are made by the
@@ -64,18 +75,42 @@ function sendRequest(uri, method, req, handler) {
 /*****************************************************************************
  * Service methods provided
  *****************************************************************************/
+	
+// initialize database
+function initDatabase() {
+	var schema = {
+		tables: {
+			// TABLE indicators
+			indicators:
+				"id         INTEGER PRIMARY KEY,"+
+				"indicator  VARCHAR(64) NOT NULL,"+
+				"kind       INTEGER DEFAULT 0,"+
+				"CONSTRAINT indicator_unique UNIQUE(indicator,kind)",
+				
+			// TABLE incidents
+			incidents:
+				"id         INTEGER PRIMARY KEY,"+
+				"indicator  INTEGER NOT NULL,"+
+				"reference  VARCHAR(255) NOT NULL,"+
+				"reported   INTEGER DEFAULT 0,"+
+				"FOREIGN KEY(indicator) REFERENCES indicators(id),"+
+				"CONSTRAINT incident_unique UNIQUE(indicator,reference)",
+		}
+	};
+	pdDatabase.init(schema);
+}
 
 // fetch latest indicators
-function fetchIndicators() {
+function fetchIndicators(callback) {
 	sendRequest(
 		"/api/indicators/fetch/",
 		"GET",
 		null,
 		function(response) {
-			// store indicators in preferences
-			prefs.setCharPref("indicators", JSON.stringify(response));
-			// add indicators to bloomfilter
+
+/* @@@ Bloomfilter
 			var indList = []
+			// compile list of indicators
 			if (response.domains !== null) {
 				for (var i = 0; i < response.domains.length; i++) {
 					indList.push(response.domains[i]);
@@ -86,6 +121,7 @@ function fetchIndicators() {
 					indList.push(response.emails[i]);
 				}
 			}
+			// add indicators to bloomfilter
 			var numIndicators = indList.length;
 			if (numIndicators > 0) {
 				bfPositives = NewBloomFilter().init(numIndicators, 0.000001);
@@ -98,11 +134,53 @@ function fetchIndicators() {
 					}
 				}
 			}
+*/
+	
+/* @@@ SQLite database */
+			// TODO: until there is a mechanism to fetch only indicators we
+			// haven't seen yet, we have to drop the 'indicators' table every
+			// time we start-up. This is wasting bandwidth and time!
+			pdDatabase.executeSimpleSQL("DELETE FROM indicators");
+			
+			// add indicators to database
+			pdDatabase.addIndicators(response.domains, 1, callback);
+			pdDatabase.addIndicators(response.emails, 2, callback);
 		}
 	);
 }
 
-// send a notification about found indicator
+// check if a string is contained in the list of indicators.
+// provide a context (string, max 255 chars) to identify where
+// the indicator was detected (URL, MessageID,...)
+function checkForIndicator(s, context) {
+	// console.log("==> checkForIndicator(" + s + ")");
+	// create entry for lookup
+	var hash = sha256.create();
+	hash.update(s);
+	var indicator = bin2hex(hash.array());
+
+/* @@@ Bloomfilter
+	// check for entry in BloomFilter
+	if (bfPositives !== null && bfPositives.contains(indicator)) {
+		if (bfNegatives === null || !bfNegatives.contains(indicator)) {
+			return true;
+		}
+	}
+*/
+	
+/* @@@ SQLite database */
+	// check if the indicator is listed.
+	var result = pdDatabase.hasIndicator(indicator);
+	for (var i = 0; i < result.length; i++) {
+		// record the incident
+		pdDatabase.recordIncident(result[i].id,context);
+		return true;
+	}
+	
+	return false;
+}
+
+// end a notification about found indicator
 function sendEvent(eventType, indicator, hashed) {
 	sendRequest(
 		"/api/events/add/",
@@ -117,32 +195,15 @@ function sendEvent(eventType, indicator, hashed) {
 	);
 }
 
-// check if a string is contained in the list of indicators 
-function checkForIndicator(s) {
-	// console.log("==> checkForIndicator(" + s + ")");
-	// create entry for lookup
-	var hash = sha256.create();
-	hash.update(s);
-	var indicator = hash.array();
-	
-	// check for entry in BloomFilter
-	if (bfPositives !== null && bfPositives.contains(indicator)) {
-		if (bfNegatives === null || !bfNegatives.contains(indicator)) {
-			return true;
-		}
-	}
-	return false;
-}
-
 /*****************************************************************************
  * Dissect and analyze email message (MIME format with headers)
  *****************************************************************************/
 
 // check domain
-function checkDomain(name) {
+function checkDomain(name,context) {
 	// console.log("checkDomain(" + name + ")");
 	// check full hostname (subdomain+.domain)
-	if (checkForIndicator(name)) {
+	if (checkForIndicator(name,context)) {
 		return true
 	}
 	// check effective top-level domain
@@ -150,15 +211,15 @@ function checkDomain(name) {
 	if (tld == name) {
 		return false;
 	}
-	return checkForIndicator(tld);
+	return checkForIndicator(tld,context);
 }
 
 // check email address
-function checkEmailAddress(addr) {
+function checkEmailAddress(addr,context) {
 	// check if addr is a list of addresses
 	if (Array.isArray(addr)) {
 		for (var i = 0; i < addr.length; i++) {
-			checkEmailAddress(addr[i]);
+			checkEmailAddress(addr[i],context);
 		}
 		return;
 	}
@@ -172,7 +233,7 @@ function checkEmailAddress(addr) {
 	// console.log("=> " + addr);
 
 	// check if email address is an indicator.
-	if (checkForIndicator(addr)) {
+	if (checkForIndicator(addr,context)) {
 		return true;
 	}
 	// check email domain
@@ -182,35 +243,35 @@ function checkEmailAddress(addr) {
 	} catch(error) {
 		console.error("addr=" + addr);
 	}
-	return checkDomain(domain);
+	return checkDomain(domain,context);
 }
 
 // check mail hops
-function checkMailHop(hop) {
+function checkMailHop(hop,context) {
 	// console.log("checkMailHop(" + hop + ")");
 	return false;
 }
 
 // check link
-function checkLink(link) {
+function checkLink(link,context) {
 	// console.log("checkLink(" + link + ")");
 	// check for email link
 	if (link.startsWith("mailto:")) {
 		return {
-			status: checkEmailAddress(link.substring(7)),
+			status: checkEmailAddress(link.substring(7),context),
 			mode: "email"
 		}
 	}	
 	// check domain
 	var url = new URL(link);
 	return {
-		status: checkDomain(url.hostname),
+		status: checkDomain(url.hostname,context),
 		mode: "link"
 	}
 }
 
 // check MIME part of the email
-function checkMIMEPart(part, rc, skip) {
+function checkMIMEPart(part, rc, skip, context) {
 	// find MIME part to scan
 	var usePart = null;
 	var bodyType = null;
@@ -240,7 +301,7 @@ function checkMIMEPart(part, rc, skip) {
 		case "multipart/mixed":
 			// process all parts
 			for (var i = 0; i < part.parts.length; i++) {
-				checkMIMEPart(part.parts[i], rc, true);
+				checkMIMEPart(part.parts[i], rc, true, context);
 			}
 			return;
 		default:
@@ -259,7 +320,7 @@ function checkMIMEPart(part, rc, skip) {
 	
 	// shared code to process links
 	var processLink = function(link,rc) {
-		var res = checkLink(link);
+		var res = checkLink(link,context);
 		switch (res.mode) {
 		case "email":
 			rc.totalEmail++;
@@ -282,13 +343,13 @@ function checkMIMEPart(part, rc, skip) {
 		reg = new RegExp("<a\\s*href=([^\\s>]*)", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
 			var link = result[1].replace(/^["']?|["']?$/gm,'');
-			processLink(link,rc);
+			processLink(link,rc,context);
 		}
 	} else if (bodyType == "text/plain") {
 		// scan plain text
 		reg = new RegExp("\\s?((http|https|ftp)://[^\\s<]+[^\\s<\.)])", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
-			processLink(result[1],rc);
+			processLink(result[1],rc,context);
 		}
 	}
 }
@@ -299,20 +360,21 @@ function checkMIMEPart(part, rc, skip) {
 
 // process a MIME message object
 function inspectEMail(email) {
-	console.log("inspectEMail(): " + email.headers.from);
+	// console.log("inspectEMail(): " + email.headers.from);
+	var context = email.headers["message-id"][0];
 	var list = [];
 
 	// check sender(s) of email
 	// console.log(JSON.stringify(email.headers));
 	var count = 0;
 	var total = 1;
-	if (checkEmailAddress(email.headers.from)) {
+	if (checkEmailAddress(email.headers.from, context)) {
 		count++;
 	}
 	if (email.headers.sender !== undefined) {
 		total += email.headers.sender.length; 
 		email.headers.sender.forEach(sender => {
-			if (checkEmailAddress(sender)) {
+			if (checkEmailAddress(sender, context)) {
 				count++;
 			}
 		});
@@ -326,14 +388,14 @@ function inspectEMail(email) {
 	total = 0;
 	if (email.headers["reply-to"] !== undefined) {
 		total = 1;
-		if (checkEmailAddress(email.headers["reply-to"])) {
+		if (checkEmailAddress(email.headers["reply-to"], context)) {
 			count++;
 		}
 	}
 	if (email.headers["return-path"] !== undefined) {
 		total += email.headers["return-path"].length;
 		email.headers["return-path"].forEach(replyTo => {
-			if (checkEmailAddress(replyTo)) {
+			if (checkEmailAddress(replyTo, context)) {
 				count++;
 			}
 		});
@@ -348,7 +410,7 @@ function inspectEMail(email) {
 	if (email.headers.received !== undefined) {
 		total += email.headers.received.length;
 		email.headers.received.forEach(hop => {
-			if (checkMailHop(hop)) {
+			if (checkMailHop(hop, context)) {
 				count++;
 			}
 		});
@@ -356,7 +418,7 @@ function inspectEMail(email) {
 	if (email.headers["x-received"] !== undefined) {
 		total += email.headers["x-received"].length;
 		email.headers["x-received"].forEach(hop => {
-			if (checkMailHop(hop)) {
+			if (checkMailHop(hop, context)) {
 				count++;
 			}
 		});
@@ -369,7 +431,7 @@ function inspectEMail(email) {
 	// inspect MIME parts
 	var rc = { countLinks: 0, totalLinks: 0, countEmail: 0, totalEmail: 0 }
 	email.parts.forEach(part => {
-		checkMIMEPart(part, rc, false);
+		checkMIMEPart(part, rc, false, context);
 	});
 	if (rc.countLinks > 0) {
 		list.push("Links (" + rc.countLinks + "/" + rc.totalLinks + ")");
@@ -391,4 +453,16 @@ function inspectEMail(email) {
 		date: Date.now(),
 		indications: list
 	}
+}
+
+/*****************************************************************************
+ * Helper functions.
+ *****************************************************************************/
+
+function bin2hex(array) {
+	var s = "";
+	for (var i = 0; i < array.length; i++) {
+		s += array[i].toString(16);
+	}
+	return s;
 }

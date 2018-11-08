@@ -18,11 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-Components.utils.import("resource:///modules/gloda/mimemsg.js");
+/* N.B.: You need to include "pd-client.js" before this file! */
+
+Cu.import("resource:///modules/gloda/mimemsg.js");
 
 // nsIMessenger instance for access to messages
-var gMessenger = Components.classes["@mozilla.org/messenger;1"]
-	.createInstance(Components.interfaces.nsIMessenger);
+var gMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
 
 
 /*****************************************************************************
@@ -258,13 +259,13 @@ window.addEventListener("load", function load() {
     window.removeEventListener("load", load, false);
 	
 	// add filter for incoming mails
-	let notificationService = Components.classes["@mozilla.org/messenger/msgnotificationservice;1"]
-		.getService(Components.interfaces.nsIMsgFolderNotificationService);
+	let notificationService = Cc["@mozilla.org/messenger/msgnotificationservice;1"]
+		.getService(Ci.nsIMsgFolderNotificationService);
 	notificationService.addListener(newMailListener, notificationService.msgAdded);
 
 	// add custom column for PhishDetect in message list view
-	let observerService = Components.classes["@mozilla.org/observer-service;1"]
-		.getService(Components.interfaces.nsIObserverService);
+	let observerService = Cc["@mozilla.org/observer-service;1"]
+		.getService(Ci.nsIObserverService);
 	observerService.addObserver(pdObserver, "MsgCreateDBView", false);
 
 	// handle message display
@@ -325,10 +326,23 @@ window.addEventListener("load", function load() {
 		}, true);
     }
 	
+    // Connect to (and initialize) database
+	initDatabase();
+
 	// get latest indicators
 	statusMsg("Fetching indicators...");
-	fetchIndicators();
-	
-	// notify user
-	statusMsg("Started.");
+	fetchIndicators(function(rc, msg){
+		switch (rc) {
+			case -1:
+				var out = "Database error -- " + msg;
+				statusMsg(out);
+				console.error(out);
+				break;
+			case 1:
+				var out = (msg == "DONE" ? "Fetched indicators" : "Fetch cancelled");
+				statusMsg(out);
+				console.log(out)
+				break;
+		}
+	});
 }, false);

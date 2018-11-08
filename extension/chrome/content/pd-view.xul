@@ -8,6 +8,7 @@
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/bloomfilter.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/tld.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-database.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/phishdetect.js"/>
 
 	<rows id="msgNotificationBar">
