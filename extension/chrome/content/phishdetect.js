@@ -25,6 +25,15 @@ Cu.import("resource:///modules/gloda/mimemsg.js");
 // nsIMessenger instance for access to messages
 var gMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
 
+	
+/*****************************************************************************
+ * Handle reporting...
+ *****************************************************************************/
+
+function manageReports() {
+	alert("Reporting");
+}
+
 
 /*****************************************************************************
  * Scan email content for phishing using the PhishDetect engine
@@ -289,7 +298,7 @@ window.addEventListener("load", function load() {
 					// check if email is tagged by PhishDetect
 					let hdr = gFolderDisplay.selectedMessage;
 					let rc = getPhishDetectStatus(hdr);
-					if (rc.phish) {
+					if (rc !== null && rc.phish) {
 						// set notification bar content
 						let ts = new Date(rc.date);
 						document.getElementById('pd-scan-date').innerHTML = "Indications (found on " + ts + "):";

@@ -31,14 +31,14 @@
 					</hbox>
 				</tabpanel>
 				<tabpanel orient="vertical">
-					<checkbox label="Enable reporting" preference="pref-reports" checked="false"/>
+					<checkbox id="pd-pref-reports" label="Enable reporting" preference="pref-reports" checked="false"/>
 					<hbox align="center">
 						<label control="pd-pref-contact" value="User:"/>
 						<textbox id="pd-pref-contact" preference="pref-contact" placeholder="Enter a user name..."/>
 					</hbox>
 				</tabpanel>
 				<tabpanel orient="vertical">
-					<checkbox label="Demo modus" preference="pref-demo" checked="false"/>
+					<checkbox id="pd-prefs-demo" label="Demo modus" preference="pref-demo" checked="false"/>
 				</tabpanel>
 			</tabpanels>
 		</tabbox>

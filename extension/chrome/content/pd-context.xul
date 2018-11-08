@@ -5,7 +5,12 @@
 		<menuitem id="pd-context-mail" class="menuitem-iconic" image="chrome://phishdetect/content/icon16.png" label="Run PhishDetect on Email" oncommand="scanEmail();"/>
 	</popup>
 	<menupopup id="folderPaneContext">
-		<menuitem id="pd-context-folder" class="menuitem-iconic" image="chrome://phishdetect/content/icon16.png" label="PhishDetect in Folder" oncommand="scanFolder();"/>
-		<menuitem id="pd-context-sync" label="Sync with PhishDetect node" oncommand="fetchIndicators();"/>
+		<menu id="pd-context-folder" class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="PhishDetect">
+			<menupopup>
+				<menuitem label="Scan emails in folder" oncommand="scanFolder();"/>
+				<menuitem label="Sync with node" oncommand="fetchIndicators();"/>
+				<menuitem label="Reporting..." oncommand="manageReports();"/>
+			</menupopup>
+		</menu>
 	</menupopup>
 </overlay>

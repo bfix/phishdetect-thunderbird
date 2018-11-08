@@ -91,10 +91,10 @@ function initDatabase() {
 			incidents:
 				"id         INTEGER PRIMARY KEY,"+
 				"indicator  INTEGER NOT NULL,"+
-				"reference  VARCHAR(255) NOT NULL,"+
+				"context    VARCHAR(255) NOT NULL,"+
 				"reported   INTEGER DEFAULT 0,"+
 				"FOREIGN KEY(indicator) REFERENCES indicators(id),"+
-				"CONSTRAINT incident_unique UNIQUE(indicator,reference)",
+				"CONSTRAINT incident_unique UNIQUE(indicator,context)",
 		}
 	};
 	pdDatabase.init(schema);
@@ -140,7 +140,8 @@ function fetchIndicators(callback) {
 			// TODO: until there is a mechanism to fetch only indicators we
 			// haven't seen yet, we have to drop the 'indicators' table every
 			// time we start-up. This is wasting bandwidth and time!
-			pdDatabase.executeSimpleSQL("DELETE FROM indicators");
+			// this keeps test indicators (kind == 0)
+			pdDatabase.executeSimpleSQL("DELETE FROM indicators WHERE kind <> 0");
 			
 			// add indicators to database
 			pdDatabase.addIndicators(response.domains, 1, callback);
@@ -176,7 +177,7 @@ function checkForIndicator(s, context) {
 		pdDatabase.recordIncident(result[i].id,context);
 		return true;
 	}
-	
+	// console.log(indicator);
 	return false;
 }
 
@@ -462,7 +463,7 @@ function inspectEMail(email) {
 function bin2hex(array) {
 	var s = "";
 	for (var i = 0; i < array.length; i++) {
-		s += array[i].toString(16);
+		s += array[i].toString(16).padStart(2,'0');
 	}
 	return s;
 }

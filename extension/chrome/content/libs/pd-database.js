@@ -57,8 +57,8 @@ var pdDatabase = {
 	// returns a list of occurrences (same indicator for different kinds like
 	// domain, emails,...) or an empty list if the indicator is not found.
 	hasIndicator: function(indicator) {
+		let stmt = this.dbConn.createStatement("SELECT id,kind FROM indicators WHERE indicator = :indicator");
 		try {
-			let stmt = this.dbConn.createStatement("SELECT id,kind FROM indicators WHERE indicator = :indicator");
 			stmt.params.indicator = indicator;
 			let result = [];
 			while (stmt.executeStep()) {
@@ -75,14 +75,21 @@ var pdDatabase = {
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
 	recordIncident: function(id,context) {
-		let stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO incidents(indicator,context) VALUES(:indicator,:context)");
+		let stmt = null;
 		try {
+			stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO incidents(indicator,context) VALUES(:indicator,:context)");
 			stmt.params.indicator = id;
 			stmt.params.context = context;
 			stmt.executeStep();
 		}
+		catch(e) {
+			console.error(e);
+		}
 		finally {
-			stmt.reset();
+			if (stmt !== null) {
+				console.log("recordIncident(" + id + ",'" + context + "')");
+				stmt.reset();
+			}
 		}
 	},
 
