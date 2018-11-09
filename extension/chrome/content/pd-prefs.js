@@ -34,6 +34,9 @@ var pdPrefsPane = {
 		var msg = "(no reports yet)";
 		if (v > 0) msg = new Date(v*60000).toString();
 		document.getElementById('pd-pref-reports-sync-last').value += msg;
+		
+		// run updaters
+		this.update_reports();
 	},
 
 	// validate all fields and block exit if invalid fields are encountered
@@ -41,6 +44,13 @@ var pdPrefsPane = {
 		if (!changed('node-url')) return false;
 		if (!changed('node-sync')) return false;
 		return true;
+	},
+	
+	// update reporting status
+	update_reports: function() {
+		var disabled = !document.getElementById("pd-pref-reports").checked;
+		document.getElementById("pd-pref-reports-sync").disabled = disabled;		
+		document.getElementById("pd-pref-reports-contact").disabled = disabled;		
 	},
 	
 	// check changed fields
@@ -53,10 +63,12 @@ var pdPrefsPane = {
 				try {
 					var url = new URL(v);
 					if (url.protocol != "http:" && url.protocol != "https:") {
-						return false;
+						document.getElementById('pd-pref-' + field).value += "https://";
+						return this.changed(field);
 					}
 				}
 				catch(e) {
+					document.getElementById('pd-pref-' + field).value = "https://node.phishdetect.io/";
 					return false;
 				}
 				return true;
@@ -70,11 +82,11 @@ var pdPrefsPane = {
 					} else if (t > 44640) {
 						t = 44640
 					}
-					document.getElementById('pd-pref-' + field).value = t;
 				}
 				catch(e) {
-					return false;
+					t = 240;
 				}
+				document.getElementById('pd-pref-' + field).value = t;
 				return true;
 				
 			// check report contact

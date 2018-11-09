@@ -1,0 +1,8 @@
+
+#pd-prefs-pane tabpanel > * {
+	margin-top: 0.5em;
+}
+
+#pd-prefs-pane groupbox > * {
+	margin-top: 0.5em;
+}
