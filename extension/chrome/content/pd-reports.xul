@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
+<?xml-stylesheet type="text/css" href="chrome://messenger/skin/preferences/preferences.css"?>
+<?xml-stylesheet type="text/css" href="chrome://phishdetect/skin/pd-reports.css"?>
+
+<window
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	id="pd-reports-dlg" title="PhishDetect Reports" drawtitle="true"
+	windowtype="phishdetect:reports" height="300" width="600"
+	persist="width height screenX screenY sizemode" onload="onload();">
+	
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-database.js"/> 
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
+	<script type="text/javascript" src="chrome://phishdetect/content/pd-reports.js"/> 
+
+	<vbox flex="1">
+		<hbox align="center">
+			<vbox>
+				<description value="Last report:"/>
+				<description value="Status:"/>
+			</vbox>
+			<vbox>
+				<description id="pd-dlg-reports-last"/>
+				<description id="pd-dlg-reports-pending"/>
+			</vbox>
+		</hbox>
+		<tree id="pd-reports-tree" editable="true" flex="1">
+			<treecols>
+				<treecol id="indicator" editable="false" label="Indicator" flex="1"/>
+				<treecol id="context" editable="false" label="Context" flex="15"/>
+			</treecols>
+			<treechildren/>
+		</tree>
+		<hbox pack="end" align="center">
+			<description value="Reporter:"/>
+			<description id="pd-dlg-reports-user"/>
+			<spacer flex="1"/>
+			<button label="Send report" oncommand="sendReport();"/>
+		</hbox>
+	</vbox>
+</window>

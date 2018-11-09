@@ -40,7 +40,7 @@ var bfNegatives = null;
  * Preferences (key/value pairs of options)
  *****************************************************************************/
 
- // Get the PhishDetect preferences branch
+// Get the PhishDetect preferences branch
 var prefs = Cc["@mozilla.org/preferences-service;1"]
 				.getService(Ci.nsIPrefService)
 				.getBranch("extensions.phishdetect.");
@@ -78,26 +78,7 @@ function sendRequest(uri, method, req, handler) {
 	
 // initialize database
 function initDatabase() {
-	var schema = {
-		tables: {
-			// TABLE indicators
-			indicators:
-				"id         INTEGER PRIMARY KEY,"+
-				"indicator  VARCHAR(64) NOT NULL,"+
-				"kind       INTEGER DEFAULT 0,"+
-				"CONSTRAINT indicator_unique UNIQUE(indicator,kind)",
-				
-			// TABLE incidents
-			incidents:
-				"id         INTEGER PRIMARY KEY,"+
-				"indicator  INTEGER NOT NULL,"+
-				"context    VARCHAR(255) NOT NULL,"+
-				"reported   INTEGER DEFAULT 0,"+
-				"FOREIGN KEY(indicator) REFERENCES indicators(id),"+
-				"CONSTRAINT incident_unique UNIQUE(indicator,context)",
-		}
-	};
-	pdDatabase.init(schema);
+	pdDatabase.init();
 }
 
 // fetch latest indicators

@@ -27,15 +27,6 @@ var gMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
 
 	
 /*****************************************************************************
- * Handle reporting...
- *****************************************************************************/
-
-function manageReports() {
-	alert("Reporting");
-}
-
-
-/*****************************************************************************
  * Scan email content for phishing using the PhishDetect engine
  *****************************************************************************/
 

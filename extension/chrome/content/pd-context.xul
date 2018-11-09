@@ -9,7 +9,7 @@
 			<menupopup>
 				<menuitem label="Scan emails in folder" oncommand="scanFolder();"/>
 				<menuitem label="Sync with node" oncommand="fetchIndicators();"/>
-				<menuitem label="Reporting..." oncommand="manageReports();"/>
+				<menuitem label="Reporting..." oncommand="toOpenWindowByType('phishdetect:reports', 'chrome://phishdetect/content/pd-reports.xul');"/>
 			</menupopup>
 		</menu>
 	</menupopup>

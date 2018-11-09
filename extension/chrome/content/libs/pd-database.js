@@ -92,6 +92,21 @@ var pdDatabase = {
 			}
 		}
 	},
+	
+	// get unreported incidents
+	getUnreported: function() {
+		let stmt = this.dbConn.createStatement("SELECT id,indicator,context FROM incidents WHERE reported = 0");
+		let result = [];
+		try {
+			while (stmt.executeStep()) {
+				result.push({ id:stmt.row.id, indicator: stmt.row.indicator, context: stmt.row.context });
+			}
+		}
+		finally {
+			stmt.reset();
+		}
+		return result;
+	},
 
 	/*******************************************************************
 	 * PhishDetect database core functions
@@ -101,12 +116,30 @@ var pdDatabase = {
 	dbSchema:		null,
 	initialized:	false,
 
-	init: function(schema) {
+	init: function() {
 		if (this.initialized) {
 			return;
 		}
 		this.initialized = true;
-		this.dbSchema = schema;
+		this.dbSchema = {
+			tables: {
+				// TABLE indicators
+				indicators:
+					"id         INTEGER PRIMARY KEY,"+
+					"indicator  VARCHAR(64) NOT NULL,"+
+					"kind       INTEGER DEFAULT 0,"+
+					"CONSTRAINT indicator_unique UNIQUE(indicator,kind)",
+					
+				// TABLE incidents
+				incidents:
+					"id         INTEGER PRIMARY KEY,"+
+					"indicator  INTEGER NOT NULL,"+
+					"context    VARCHAR(255) NOT NULL,"+
+					"reported   INTEGER DEFAULT 0,"+
+					"FOREIGN KEY(indicator) REFERENCES indicators(id),"+
+					"CONSTRAINT incident_unique UNIQUE(indicator,context)",
+			}
+		};
 		
 		var dirService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
 		var dbFile = dirService.get("ProfD", Ci.nsIFile);
