@@ -137,12 +137,15 @@ function fetchIndicators(callback) {
 // check if a string is contained in the list of indicators.
 // provide a context (string, max 255 chars) to identify where
 // the indicator was detected (URL, MessageID,...)
-function checkForIndicator(s, context) {
+function checkForIndicator(raw, context) {
 	// console.log("==> checkForIndicator(" + s + ")");
 	// create entry for lookup
 	var hash = sha256.create();
-	hash.update(s);
+	hash.update(raw);
 	var indicator = bin2hex(hash.array());
+	
+	// TESTING: log indicator
+	// console.log('("' + indicator + '"),|' + raw);
 
 /* @@@ Bloomfilter
 	// check for entry in BloomFilter
@@ -158,7 +161,7 @@ function checkForIndicator(s, context) {
 	var result = pdDatabase.hasIndicator(indicator);
 	for (var i = 0; i < result.length; i++) {
 		// record the incident
-		pdDatabase.recordIncident(result[i].id,context);
+		pdDatabase.recordIncident(raw, result[i].id, context);
 		return true;
 	}
 	// console.log(indicator);
@@ -203,10 +206,11 @@ function checkDomain(name,context) {
 function checkEmailAddress(addr,context) {
 	// check if addr is a list of addresses
 	if (Array.isArray(addr)) {
+		let rc = false;
 		for (var i = 0; i < addr.length; i++) {
-			checkEmailAddress(addr[i],context);
+			rc |= checkEmailAddress(addr[i],context);
 		}
-		return;
+		return rc;
 	}
 	// console.log("checkEmailAddress(" + addr + ")");
 	// normalize email address
@@ -346,7 +350,7 @@ function checkMIMEPart(part, rc, skip, context) {
 // process a MIME message object
 function inspectEMail(email) {
 	// console.log("inspectEMail(): " + email.headers.from);
-	var context = email.headers["message-id"][0];
+	var context = "From " + email.headers.from + " (" + email.headers.date + ")";
 	var list = [];
 
 	// check sender(s) of email
