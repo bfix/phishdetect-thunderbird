@@ -73,3 +73,58 @@ zip -r ../phishdetect.xpi .
 ```
 This creates an installer file for Thunderbird in the base directory of the
 repository.
+
+## Runtime
+
+### Keep an eye on the log files
+
+This extension is highly experimental, so expect failures and misbehavior at
+any time. Open the developer toolbox (`Tools > Developer Tools > Developer Toolbox`)
+and check the `Console` log for messages from the extension. The source files
+of the extension are named `phishdetect.js` and `pd-*.js`, so you can easily
+identify problems...
+
+### PhishDetect database
+
+The extension will create and use a SQLite database `pishdetect.sqlite` in the
+profile folder. **BEWARE**: The table schemas may change from commit to commit, so
+if you are running an older version of the extension, it might be necessary to
+remove the old database file before starting Thunderbird with the new version of
+the extension. Consult the error log in the debugger console to check for errors.
+
+## Testing
+
+For testing it is necessary to add own indicators to the database, so that the
+extension can find and flag suspicious emails in your test account. While Thunderbird
+is not running, add test indicators:
+
+```bash
+$ cd $profile
+$ sqlite phishdetect.sqlite
+sqlite> insert or ignore into indicators(indicator) values
+('007f1dbe16d6a6d8dcc0bbdde514864a7af68a08823674ebd0cf640cbe2490b9'),
+('019e560588abb2fb090bf08dc5f26e5851ad40629de00b3da367ea9453f4e90e'),
+:
+('fe28444d2c814d22fcf0db77a40c65b51ea3cb862d28b8c475090cf1c6d68d8a'),
+('ff8ce94b940557de35c13ad6d385fe0cc3cd68763b9297c6a305699c71283df2');
+sqlite> ^D
+```
+Test indicators (field `kind` is 0) are persistent across node syncs, but
+you have to add them every time the database is removed and re-created. So
+best keep the SQL insert statement in a file for multiple uses.
+
+To generate a list of test indicators yourself, edit the file
+`extension/chrome/content/libs/pd-client.js` and find the comment
+`TESTING: log indicator`. Uncomment the following `console.log` statement
+and re-package and re-install the modified extension. Go to the email folder
+containing your test emails and select `PhishDetect > Scan emails in folder`
+in the context menu of the folder.
+
+You can now copy the list of logged indicators from the console and paste them
+into an editor. Select unique indicators to be used for testing; don't include
+all indicators or all emails will be detected and flagged by PhishDetect!
+20% seems to be a reasonable choice...
+
+Don't forget to undo the change in `extension/chrome/content/libs/pd-client.js`
+(or the log will be cluttered with indicators). Re-package and re-install the
+extension for further testing.
