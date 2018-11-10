@@ -45,7 +45,11 @@ function onload() {
 		rowCount : pending.length,
 		getCellText : function(row,column) {
 			switch(column.id) {
-				case 'indicator': return pending[row].indicator;
+				case 'timestamp': {
+					let ts = new Date(pending[row].timestamp);
+					return ts.toLocaleDateString() + " " + ts.toLocaleTimeString();
+				}
+				case 'indicator': return pending[row].raw;
 				case 'context': return pending[row].context;
 			}
 		},

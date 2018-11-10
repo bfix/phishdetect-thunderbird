@@ -292,7 +292,10 @@ window.addEventListener("load", function load() {
 					if (rc !== null && rc.phish) {
 						// set notification bar content
 						let ts = new Date(rc.date);
-						document.getElementById('pd-scan-date').innerHTML = "Indications (found on " + ts + "):";
+						document.getElementById('pd-scan-date').innerHTML =
+							"Indications (found on " +
+							ts.toLocaleDateString() + " " +
+							ts.toLocaleTimeString() + "):";
 						for (var i = 0; i < rc.indications.length; i++) {
 							var txt = document.getElementById('pd-reason-'+i);
 							txt.innerHTML = rc.indications[i];

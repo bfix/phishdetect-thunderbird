@@ -26,8 +26,9 @@
 		</hbox>
 		<tree id="pd-reports-tree" editable="true" flex="1">
 			<treecols>
+				<treecol id="timestamp" editable="false" label="First seen" flex="1"/>
 				<treecol id="indicator" editable="false" label="Indicator" flex="1"/>
-				<treecol id="context" editable="false" label="Context" flex="15"/>
+				<treecol id="context" editable="false" label="Context" flex="5"/>
 			</treecols>
 			<treechildren/>
 		</tree>
