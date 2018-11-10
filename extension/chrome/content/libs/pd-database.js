@@ -74,10 +74,12 @@ var pdDatabase = {
 	// record incident:
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
-	recordIncident: function(id,context) {
+	recordIncident: function(raw, id, context) {
 		let stmt = null;
 		try {
-			stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO incidents(indicator,context) VALUES(:indicator,:context)");
+			stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO incidents(timestamp,raw,indicator,context) VALUES(:ts,:raw,:indicator,:context)");
+			stmt.params.raw = raw;
+			stmt.params.ts = Date.now();
 			stmt.params.indicator = id;
 			stmt.params.context = context;
 			stmt.executeStep();
@@ -95,11 +97,17 @@ var pdDatabase = {
 	
 	// get unreported incidents
 	getUnreported: function() {
-		let stmt = this.dbConn.createStatement("SELECT id,indicator,context FROM incidents WHERE reported = 0");
+		let stmt = this.dbConn.createStatement("SELECT id,timestamp,raw,indicator,context FROM incidents WHERE reported = 0");
 		let result = [];
 		try {
 			while (stmt.executeStep()) {
-				result.push({ id:stmt.row.id, indicator: stmt.row.indicator, context: stmt.row.context });
+				result.push({
+					id: stmt.row.id,
+					timestamp: stmt.row.timestamp,
+					raw: stmt.row.raw,
+					indicator: stmt.row.indicator,
+					context: stmt.row.context
+				});
 			}
 		}
 		finally {
@@ -133,6 +141,8 @@ var pdDatabase = {
 				// TABLE incidents
 				incidents:
 					"id         INTEGER PRIMARY KEY,"+
+					"timestamp  INTEGER NOT NULL," +
+					"raw        VARCHAR(1024) NOT NULL," +
 					"indicator  INTEGER NOT NULL,"+
 					"context    VARCHAR(255) NOT NULL,"+
 					"reported   INTEGER DEFAULT 0,"+
