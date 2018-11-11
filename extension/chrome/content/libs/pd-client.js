@@ -19,12 +19,16 @@
  */
 
 /*****************************************************************************
- * Simplified access to components.
+ * Simplified access to components and services
  *****************************************************************************/
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+
+var dlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
 
 
 /*****************************************************************************
@@ -32,9 +36,7 @@ const Cu = Components.utils;
  *****************************************************************************/
 
 // Get the PhishDetect preferences branch
-var prefs = Cc["@mozilla.org/preferences-service;1"]
-				.getService(Ci.nsIPrefService)
-				.getBranch("extensions.phishdetect.");
+var prefs = Services.prefs.getBranch("extensions.phishdetect.");
 
 // Get a preference value for a given key.
 // Setter methods are not provided; changes are made by the
@@ -58,9 +60,13 @@ function sendRequest(uri, method, req, handler) {
 	}
 	var url = getPrefString("node_url") + uri;
 	fetch(url, prop)
-		.then((response) => response.json())
-		.then(handler)
-		.catch(error => { console.log(error); })
+		.then(response => response.json())
+		.then(response => {
+			handler({ response: response })
+		})
+		.catch(error => {
+			handler({ error: error });
+		});
 }
 
 /*****************************************************************************
@@ -75,10 +81,17 @@ function initDatabase() {
 // fetch latest indicators
 function fetchIndicators(callback) {
 	sendRequest(
-		"/api/indicators/fetch/",
-		"GET",
-		null,
-		function(response) {
+		"/api/indicators/fetch/", "GET", null,
+		rc => {
+			// check for error case.
+			if (rc.error !== undefined) {
+				dlgPrompt.alert(null, "Node Synchronization",
+					"Fetching new indicators from the back-end node failed:\n\n" +
+					rc.error + "\n\n" +
+					"Make sure you are connected to the internet. If the problem "+
+					"persists, contact your node operator.");
+				return;
+			}
 
 			// TODO: until there is a mechanism to fetch only indicators we
 			// haven't seen yet, we have to drop the 'indicators' table every
@@ -87,8 +100,8 @@ function fetchIndicators(callback) {
 			pdDatabase.executeSimpleSQL("DELETE FROM indicators WHERE kind <> 0");
 			
 			// add indicators to database
-			pdDatabase.addIndicators(response.domains, 1, callback);
-			pdDatabase.addIndicators(response.emails, 2, callback);
+			pdDatabase.addIndicators(rc.response.domains, 1, callback);
+			pdDatabase.addIndicators(rc.response.emails, 2, callback);
 			
 			// update timestamp in preferences
 			prefs.setIntPref('node_sync_last', Math.floor(Date.now() / 1000));
@@ -130,7 +143,7 @@ function manageReport() {
 }
 
 // send a notification about a detected indicator
-function sendEvent(eventType, indicator, hashed, user) {
+function sendEvent(eventType, indicator, hashed, user, callback) {
 	// assemble report
 	let report = JSON.stringify({
 		"type": eventType,
@@ -141,12 +154,7 @@ function sendEvent(eventType, indicator, hashed, user) {
 	console.log("Report: " + report);
 
 	// send to PhishDetect node
-	sendRequest(
-		"/api/events/add/",
-		"POST",
-		report,
-		function(response) {}
-	);
+	sendRequest("/api/events/add/", "POST", report, callback);
 }
 
 /*****************************************************************************

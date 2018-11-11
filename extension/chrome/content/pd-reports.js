@@ -93,6 +93,7 @@ function sendReport() {
 	
 	// send all incidents and flag them reported in database
 	let count = 0;
+	let failed = false;
 	for (var i = 0; i < pending.length; i++) {
 		let incident = pending[i];
 		
@@ -109,16 +110,35 @@ function sendReport() {
 		
 		// send incident report
 		// TODO: no context passing
-		sendEvent(incidentType[incident.kind], indicator, asHashed, user);
+		sendEvent(
+			incidentType[incident.kind], indicator, asHashed, user,
+			rc => {
+				if (rc.error !== undefined) {
+					if (!failed) {
+						failed = true;
+						console.error('Report on incident #' + incident.id + ' failed.');
+						dlgPrompt.alert(null, "Incident Report",
+							"Sending an incident report to the back-end node failed:\n\n" +
+							rc.error + "\n\n" +
+							"Make sure you are connected to the internet. If the problem "+
+							"persists, contact your node operator.");
+					}
+					return;
+				}
+				// flag incident as reported in database
+				console.log("Incident #" + incident.id + " reported.");
+				pdDatabase.setReported(incident.id);
+			});
 		count++;
-
-		// flag incident as reported in database
-		pdDatabase.setReported(incident.id);
 	}
 	// record last report date
 	if (count > 0) {
 		prefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
 	}
 	
-	// TODO: close dialog
+	// close dialog.
+	var wnd = Services.wm.getMostRecentWindow('phishdetect:reports');
+	if (wnd !== null) {
+		wnd.close();
+	}
 }

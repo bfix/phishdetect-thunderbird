@@ -261,9 +261,7 @@ window.addEventListener("load", function load() {
 	notificationService.addListener(newMailListener, notificationService.msgAdded);
 
 	// add custom column for PhishDetect in message list view
-	let observerService = Cc["@mozilla.org/observer-service;1"]
-		.getService(Ci.nsIObserverService);
-	observerService.addObserver(pdObserver, "MsgCreateDBView", false);
+	Services.obs.addObserver(pdObserver, "MsgCreateDBView", false);
 
 	// handle message display
 	let messagePane = GetMessagePane();
