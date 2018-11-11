@@ -78,8 +78,8 @@ function onload() {
   
 	// set reporter (user identifier)
 	document.getElementById("pd-dlg-reports-user").value = getPrefString('reports_contact'); 
-	document.getElementById("pd-dlg-reports-hashed").value = getPrefBool('reports_hashed'); 
-	document.getElementById("pd-dlg-reports-context").value = getPrefBool('reports_context'); 
+	document.getElementById("pd-dlg-reports-hashed").checked = getPrefBool('reports_hashed'); 
+	document.getElementById("pd-dlg-reports-context").checked = getPrefBool('reports_context'); 
 }
 
 // send a report
@@ -87,8 +87,8 @@ function onload() {
 function sendReport() {
 	// get report settings
 	let user = getPrefString('reports_contact');
-	let withContext = getPrefBool('reports_context');
-	let asHashed = getPrefBool('reports_hashed');
+	let withContext = document.getElementById("pd-dlg-reports-context").checked;
+	let asHashed = document.getElementById("pd-dlg-reports-hashed").checked;
 	let withTest = getPrefBool('test') && getPrefBool('test_report');
 	
 	// send all incidents and flag them reported in database
@@ -108,6 +108,7 @@ function sendReport() {
 		}
 		
 		// send incident report
+		// TODO: no context passing
 		sendEvent(incidentType[incident.kind], indicator, asHashed, user);
 		count++;
 
