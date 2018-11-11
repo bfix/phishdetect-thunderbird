@@ -120,6 +120,15 @@ function checkForIndicator(raw, context) {
 	return false;
 }
 
+// open reporting dialog (if reports is enabled)
+function manageReport() {
+	if (getPrefBool('reports')) {
+		toOpenWindowByType('phishdetect:reports', 'chrome://phishdetect/content/pd-reports.xul');
+	} else {
+		alert("Reporting disabled in preferences");
+	}
+}
+
 // send a notification about a detected indicator
 function sendEvent(eventType, indicator, hashed, user) {
 	// assemble report

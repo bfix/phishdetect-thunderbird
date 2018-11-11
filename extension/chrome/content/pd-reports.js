@@ -118,4 +118,6 @@ function sendReport() {
 	if (count > 0) {
 		prefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
 	}
+	
+	// TODO: close dialog
 }

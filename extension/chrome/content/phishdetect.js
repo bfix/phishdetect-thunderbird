@@ -31,27 +31,18 @@ var gMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
  *****************************************************************************/
 
 // Check PhishDetect status for a message.
-async function checkMessage(aMsgHdr, aCallback) {
-	await new Promise(
-		function(resolve) {
-			// get message in MIME format
-			MsgHdrToMimeMessage (
-				aMsgHdr,
-				null,
-				function (aMsgHdr, aMimeMsg) {
-					// evaluate body by PhishDetect engine.
-					let rc = inspectEMail(aMimeMsg);
-					// callback to invoker
-					aCallback(aMsgHdr, rc);
-					// fulfill promise
-					resolve();
-				},
-				true,
-				{ partsOnDemand: false, examineEncryptedParts:true }
-			);
-			return;
-		}
-	);
+function checkMessage(aMsgHdr, aCallback) {
+	// callback for MIME reader
+	let cb = function (aMsgHdr, aMimeMsg) {
+		// evaluate body by PhishDetect engine.
+		let rc = inspectEMail(aMimeMsg);
+		// callback to invoker
+		aCallback(aMsgHdr, rc);
+	};
+	// get message in MIME format
+	MsgHdrToMimeMessage (aMsgHdr, null, cb, true, {
+		partsOnDemand: false, examineEncryptedParts: true
+	});
 }
 
 /*****************************************************************************
@@ -63,8 +54,10 @@ function scanEmail() {
 	statusMsg('Evaluating email...');
 	var hdr = gFolderDisplay.selectedMessage;
 	checkMessage(hdr, function(aMsgHdr, aRC) {
+		// set message header to reflect detection status
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 		statusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
+		// TODO: update rendering of message
 	});
 }
 
@@ -84,20 +77,24 @@ function scanFolder() {
 	let count = folder.getTotalMessages(false);
 	let pos = 1;
 	let flagged = 0;
+
+	// callback for check function
 	var cb = function(aMsgHdr, aRC) {
+		// set message header to reflect detection status
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 		if (aRC.phish)
 			flagged++;
+		// status feedback
+		statusMsg('Evaluated ' + pos + ' of ' + count + ' emails in folder: ' + flagged + ' suspicious.');
+		pos++;
+		// TODO: update rendering of message 
 	}
+	// process all messages
 	while (msgArray.hasMoreElements()) {
-		statusMsg('Evaluating emails in folder: ' + pos + "/" + count);
 		// evaluate email content
 		let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
 		checkMessage(msgHdr, cb);
-		pos++;
 	}
-	// status feedback
-	statusMsg('Evaluated ' + count + ' emails in folder: ' + flagged + ' suspicious.');
 }
 
 // get PhishDetect header object
