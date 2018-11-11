@@ -27,19 +27,19 @@ var pdPrefsPane = {
 		var v = document.getElementById('pd-pref-node-sync-last-value').value;
 		var msg = "(no sync yet)";
 		if (v > 0) {
-			let ts = new Date(v * 60000);
+			let ts = new Date(v * 1000);
 			msg = ts.toLocaleDateString() + " " + ts.toLocaleTimeString();
 		}
-		document.getElementById('pd-pref-node-sync-last').value += msg;
+		document.getElementById('pd-pref-node-sync-last').value = msg;
 
 		// set time of last report sync
 		v = document.getElementById('pd-pref-reports-sync-last-value').value;
 		msg = "(no reports yet)";
 		if (v > 0) {
-			let ts = new Date(v * 60000);
+			let ts = new Date(v * 1000);
 			msg = ts.toLocaleDateString() + " " + ts.toLocaleTimeString();
 		}
-		document.getElementById('pd-pref-reports-sync-last').value += msg;
+		document.getElementById('pd-pref-reports-sync-last').value = msg;
 		
 		// run updaters
 		this.update_reports();
@@ -49,6 +49,7 @@ var pdPrefsPane = {
 	validate: function() {
 		if (!changed('node-url')) return false;
 		if (!changed('node-sync')) return false;
+		if (!changed('test-rate')) return false;
 		return true;
 	},
 	
@@ -56,7 +57,16 @@ var pdPrefsPane = {
 	update_reports: function() {
 		var disabled = !document.getElementById("pd-pref-reports").checked;
 		document.getElementById("pd-pref-reports-sync").disabled = disabled;		
+		document.getElementById("pd-pref-reports-hashed").disabled = disabled;		
+		document.getElementById("pd-pref-reports-context").disabled = disabled;		
 		document.getElementById("pd-pref-reports-contact").disabled = disabled;		
+	},
+	
+	// update test status
+	update_test: function() {
+		var disabled = !document.getElementById("pd-pref-test").checked;
+		document.getElementById("pd-pref-test-rate").disabled = disabled;		
+		document.getElementById("pd-pref-test-report").disabled = disabled;		
 	},
 	
 	// check changed fields
@@ -95,8 +105,24 @@ var pdPrefsPane = {
 				document.getElementById('pd-pref-' + field).value = t;
 				return true;
 				
-			// check report contact
-			case "node-reports.contact":
+			// check test rate
+			case "node-reports-contact":
+				return true;
+				
+			// check node sync interval
+			case "test-rate":
+				try {
+					var t = parseInt(v);
+					if (t < 0) {
+						t = 0;
+					} else if (t > 100) {
+						t = 100;
+					}
+				}
+				catch(e) {
+					t = 20;
+				}
+				document.getElementById('pd-pref-' + field).value = t;
 				return true;
 		}
 	}

@@ -28,15 +28,6 @@ const Cu = Components.utils;
 
 
 /*****************************************************************************
- * BloomFilter instances for detection.
- *****************************************************************************/
-
-/* @@@ Bloomfilter
-var bfPositives = null;
-var bfNegatives = null;
-*/
-
-/*****************************************************************************
  * Preferences (key/value pairs of options)
  *****************************************************************************/
 
@@ -60,7 +51,7 @@ function getPrefBool(key)   { return prefs.getBoolPref(key); }
 function sendRequest(uri, method, req, handler) {
 	var prop = {
 		method: method
-	}
+	};
 	if (req !== null) {
 		prop.body = req;
 		prop.headers = { "Content-Type": "application/json" };
@@ -89,35 +80,6 @@ function fetchIndicators(callback) {
 		null,
 		function(response) {
 
-/* @@@ Bloomfilter
-			var indList = []
-			// compile list of indicators
-			if (response.domains !== null) {
-				for (var i = 0; i < response.domains.length; i++) {
-					indList.push(response.domains[i]);
-				}
-			}
-			if (response.emails !== null) {
-				for (i = 0; i < response.emails.length; i++) {
-					indList.push(response.emails[i]);
-				}
-			}
-			// add indicators to bloomfilter
-			var numIndicators = indList.length;
-			if (numIndicators > 0) {
-				bfPositives = NewBloomFilter().init(numIndicators, 0.000001);
-				if (!bfPositives.valid) {
-					console.error("Can't create bloomfilter instance");
-					bfPositives = null;
-				} else {
-					for (i = 0; i < numIndicators; i++) {
-						bfPositives.add(indList[i]);
-					}
-				}
-			}
-*/
-	
-/* @@@ SQLite database */
 			// TODO: until there is a mechanism to fetch only indicators we
 			// haven't seen yet, we have to drop the 'indicators' table every
 			// time we start-up. This is wasting bandwidth and time!
@@ -129,7 +91,7 @@ function fetchIndicators(callback) {
 			pdDatabase.addIndicators(response.emails, 2, callback);
 			
 			// update timestamp in preferences
-			prefs.setIntPref('node_sync_last', Math.floor(Date.now() / 60000));
+			prefs.setIntPref('node_sync_last', Math.floor(Date.now() / 1000));
 		}
 	);
 }
@@ -147,16 +109,6 @@ function checkForIndicator(raw, context) {
 	// TESTING: log indicator
 	// console.log('("' + indicator + '"),|' + raw);
 
-/* @@@ Bloomfilter
-	// check for entry in BloomFilter
-	if (bfPositives !== null && bfPositives.contains(indicator)) {
-		if (bfNegatives === null || !bfNegatives.contains(indicator)) {
-			return true;
-		}
-	}
-*/
-	
-/* @@@ SQLite database */
 	// check if the indicator is listed.
 	var result = pdDatabase.hasIndicator(indicator);
 	for (var i = 0; i < result.length; i++) {
@@ -168,17 +120,22 @@ function checkForIndicator(raw, context) {
 	return false;
 }
 
-// end a notification about found indicator
-function sendEvent(eventType, indicator, hashed) {
+// send a notification about a detected indicator
+function sendEvent(eventType, indicator, hashed, user) {
+	// assemble report
+	let report = JSON.stringify({
+		"type": eventType,
+		"indicator": indicator,
+		"hashed": hashed,
+		"target_contact": user
+	});
+	console.log("Report: " + report);
+
+	// send to PhishDetect node
 	sendRequest(
 		"/api/events/add/",
 		"POST",
-		JSON.stringify({
-			"type": eventType,
-			"indicator": indicator,
-			"hashed": hashed,
-			"target_contact": getPrefString("contact")
-		}),
+		report,
 		function(response) {}
 	);
 }
@@ -429,9 +386,10 @@ function inspectEMail(email) {
 		list.push("Email addresses (" + rc.countEmail + "/" + rc.totalEmail + ")");
 	}
 	
-	// DEMO mode:
-	if (getPrefBool("demo") && list.length == 0) {
-		if (Math.random() < 0.2) {
+	// TEST mode:
+	if (getPrefBool("test") && list.length == 0) {
+		var rate = getPrefInt("test_rate") / 100;
+		if (Math.random() < rate) {
 			list.push("DEMO modus -- not based on detection!");
 		}
 	}

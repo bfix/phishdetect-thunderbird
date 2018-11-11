@@ -33,10 +33,22 @@
 			<treechildren/>
 		</tree>
 		<hbox pack="end" align="center">
-			<description value="Reporter:"/>
-			<description id="pd-dlg-reports-user"/>
+			<groupbox>
+				<caption>
+					Report options:
+				</caption>
+				<checkbox id="pd-dlg-reports-hashed" label="Obfuscate report information" checked="false"/>
+				<checkbox id="pd-dlg-reports-context" label="Include context in report" checked="false"/>
+				<hbox align="center">
+					<description value="Reporter:"/>
+					<description id="pd-dlg-reports-user"/>
+				</hbox>
+			</groupbox>
 			<spacer flex="1"/>
-			<button label="Send report" oncommand="sendReport();"/>
+			<vbox>
+				<spacer flex="1"/>
+				<button id="pd-dlg-send" label="Send report" oncommand="sendReport();"/>
+			</vbox>
 		</hbox>
 	</vbox>
 </window>

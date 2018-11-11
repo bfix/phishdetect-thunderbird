@@ -97,7 +97,17 @@ var pdDatabase = {
 	
 	// get unreported incidents
 	getUnreported: function() {
-		let stmt = this.dbConn.createStatement("SELECT id,timestamp,raw,indicator,context FROM incidents WHERE reported = 0");
+		let stmt = this.dbConn.createStatement(
+			"SELECT " +
+				"inc.id AS id," +
+				"inc.timestamp AS timestamp," +
+				"inc.raw AS raw," +
+				"ind.indicator AS indicator," +
+				"ind.kind AS kind," +
+				"inc.context AS context " +
+			"FROM incidents inc,indicators ind " +
+			"WHERE inc.reported = 0 AND inc.indicator = ind.id"
+		);
 		let result = [];
 		try {
 			while (stmt.executeStep()) {
@@ -106,6 +116,7 @@ var pdDatabase = {
 					timestamp: stmt.row.timestamp,
 					raw: stmt.row.raw,
 					indicator: stmt.row.indicator,
+					kind: stmt.row.kind,
 					context: stmt.row.context
 				});
 			}
@@ -114,6 +125,11 @@ var pdDatabase = {
 			stmt.reset();
 		}
 		return result;
+	},
+	
+	// flag incident as reported
+	setReported: function(id) {
+		this.dbConn.executeSimpleSQL('UPDATE incidents SET reported = 1 WHERE id = ' + id)
 	},
 
 	/*******************************************************************

@@ -6,3 +6,7 @@
 #pd-prefs-pane groupbox > * {
 	margin-top: 0.5em;
 }
+
+#pd-pref-node-sync-last, #pd-pref-reports-sync-last {
+	font-weight: bold;
+}
