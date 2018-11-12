@@ -1140,10 +1140,6 @@ const tldTrie = {
 	"gov":{},"mil":{},"org":{}}
 };
 
-function list() {
-	return JSON.stringify(tldTrie);
-}
-
 function getDomainName(name) {
 	var levels = name.split(".").reverse();
 	var num = levels.length;

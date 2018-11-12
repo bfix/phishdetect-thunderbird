@@ -137,37 +137,50 @@ var newMailListener = {
 
 // Sanitize (remove/modify possible suspicious content) from a HTML node
 // (and its successors) in a message display.
-function sanitize(node) {
+function sanitize(node, mode) {
 	// modify DOM on the fly
 	switch (node.nodeName) {
 		case 'A':
-			// save and reset link target
-			node.oldHref = node.href;
-			node.href = ' ';
-			// visually tag blocked links
-			let text = node.innerHTML;
-			node.innerHTML = "[<span style='color: #f00; font-weight: bold;'>BLOCKED</span>:"+text+"]";
+			if (mode) {
+				// mode = true: save and reset link target
+				node.oldHref = node.href;
+				node.href = ' ';
+				// visually tag blocked links
+				let text = node.innerHTML;
+				node.innerHTML = "[<span style='color: #f00; font-weight: bold;'>BLOCKED</span>:"+text+"]";
+			} else {
+				// mode = false: unblock links
+				node.href = node.oldHref;
+				// visually untag blocked links
+				let text = node.innerHTML;
+				text = text.replace(
+						'[<span style="color: #f00; font-weight: bold;">BLOCKED</span>:',
+						"[<span style='color: #f80; font-weight: bold;'>DANGER</span>:"
+				);
+				node.innerHTML = text;
+			}
 			break;
 	}
 	// recursively iterate over child nodes
 	let nodes = node.childNodes;
 	for (var i = 0; i < nodes.length; i++) {
-        sanitize(nodes[i]);
+        sanitize(nodes[i], mode);
 	}
 }
 
 // Sanitize (remove/modify possible suspicious content) from the HTML document
 // used to render/display the message content.
-function showSanitizedMsg(aMsgHdr, aEvent) {
+function showSanitizedMsg(aMode) {
 	// go through the message body and sanitize it
 	let browser = window.document.getElementById('messagepane');
 	let doc = browser.contentDocument;
 	// TODO: check obsolence of getAttribute
-	if (doc.body.getAttribute('phishdetect') != 'true') {
+	
+	if (doc.body.getAttribute('phishdetect') != 'true' || !aMode) {
 		// only process once...
 		doc.body.setAttribute('phishdetect','true');
 		// process email body
-		sanitize(doc.body);
+		sanitize(doc.body, aMode);
 	}
 }
 
@@ -241,9 +254,11 @@ function showDetails(reset) {
 
 // unblock links
 function unblockLinks() {
+	// remove button (run only once)
 	let btn = document.getElementById("pd-block");
-	alert("Unblocking links... (can only run once!)");
 	btn.collapsed = true;
+	// post-process links
+	showSanitizedMsg(false);
 }
 
 /*****************************************************************************
@@ -319,7 +334,7 @@ window.addEventListener("load", function load() {
 			let hdr = gFolderDisplay.selectedMessage;
 			if (hdr !== null && checkForPhish(hdr)) {
 				// display sanitized message
-				showSanitizedMsg(hdr, event);
+				showSanitizedMsg(true);
 			}
 		}, true);
     }

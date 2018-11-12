@@ -421,9 +421,10 @@ function inspectEMail(email) {
 }
 
 /*****************************************************************************
- * Helper functions.
+ * Encoding helpers
  *****************************************************************************/
 
+//binary => hex string
 function bin2hex(array) {
 	var s = "";
 	for (var i = 0; i < array.length; i++) {
@@ -431,3 +432,17 @@ function bin2hex(array) {
 	}
 	return s;
 }
+
+//hex string => binary
+function hex2bin(s) {
+	var b = [];
+	try {
+		for (var i = 0; i < s.length-1; i += 2) {
+			b.push(parseInt(s.substr(i, 2), 16));
+		}
+	} catch(e) {
+		return null;
+	}
+	return b;
+}
+
