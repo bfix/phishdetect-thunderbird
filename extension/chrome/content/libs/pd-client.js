@@ -112,7 +112,7 @@ function fetchIndicators(callback) {
 // check if a string is contained in the list of indicators.
 // provide a context (string, max 255 chars) to identify where
 // the indicator was detected (URL, MessageID,...)
-function checkForIndicator(raw, context) {
+function checkForIndicator(raw, type, context) {
 	// console.log("==> checkForIndicator(" + s + ")");
 	// create entry for lookup
 	var hash = sha256.create();
@@ -126,7 +126,7 @@ function checkForIndicator(raw, context) {
 	var result = pdDatabase.hasIndicator(indicator);
 	for (var i = 0; i < result.length; i++) {
 		// record the incident
-		pdDatabase.recordIncident(raw, result[i].id, context);
+		pdDatabase.recordIncident(raw, result[i].id, type, context);
 		return true;
 	}
 	// console.log(indicator);
@@ -143,10 +143,11 @@ function manageReport() {
 }
 
 // send a notification about a detected indicator
-function sendEvent(eventType, indicator, hashed, user, callback) {
+function sendEvent(kind, type, indicator, hashed, user, callback) {
 	// assemble report
 	let report = JSON.stringify({
-		"type": eventType,
+		"kind": kind,
+		"type": type,
 		"indicator": indicator,
 		"hashed": hashed,
 		"target_contact": user
@@ -162,10 +163,10 @@ function sendEvent(eventType, indicator, hashed, user, callback) {
  *****************************************************************************/
 
 // check domain
-function checkDomain(name,context) {
+function checkDomain(name, type, context) {
 	// console.log("checkDomain(" + name + ")");
 	// check full hostname (subdomain+.domain)
-	if (checkForIndicator(name,context)) {
+	if (checkForIndicator(name, type + "_hostname", context)) {
 		return true
 	}
 	// check effective top-level domain
@@ -173,16 +174,16 @@ function checkDomain(name,context) {
 	if (tld == name) {
 		return false;
 	}
-	return checkForIndicator(tld,context);
+	return checkForIndicator(tld, type + "_domain", context);
 }
 
 // check email address
-function checkEmailAddress(addr,context) {
+function checkEmailAddress(addr, type, context) {
 	// check if addr is a list of addresses
 	if (Array.isArray(addr)) {
 		let rc = false;
 		for (var i = 0; i < addr.length; i++) {
-			rc |= checkEmailAddress(addr[i],context);
+			rc |= checkEmailAddress(addr[i], type, context);
 		}
 		return rc;
 	}
@@ -196,7 +197,7 @@ function checkEmailAddress(addr,context) {
 	// console.log("=> " + addr);
 
 	// check if email address is an indicator.
-	if (checkForIndicator(addr,context)) {
+	if (checkForIndicator(addr, type, context)) {
 		return true;
 	}
 	// check email domain
@@ -206,29 +207,29 @@ function checkEmailAddress(addr,context) {
 	} catch(error) {
 		console.error("addr=" + addr);
 	}
-	return checkDomain(domain,context);
+	return checkDomain(domain, type, context);
 }
 
 // check mail hops
-function checkMailHop(hop,context) {
+function checkMailHop(hop, context) {
 	// console.log("checkMailHop(" + hop + ")");
 	return false;
 }
 
 // check link
-function checkLink(link,context) {
+function checkLink(link, type, context) {
 	// console.log("checkLink(" + link + ")");
 	// check for email link
 	if (link.startsWith("mailto:")) {
 		return {
-			status: checkEmailAddress(link.substring(7),context),
+			status: checkEmailAddress(link.substring(7), type + "_mailto", context),
 			mode: "email"
 		}
 	}	
 	// check domain
 	var url = new URL(link);
 	return {
-		status: checkDomain(url.hostname,context),
+		status: checkDomain(url.hostname, type, context),
 		mode: "link"
 	}
 }
@@ -283,7 +284,7 @@ function checkMIMEPart(part, rc, skip, context) {
 	
 	// shared code to process links
 	var processLink = function(link,rc) {
-		var res = checkLink(link,context);
+		var res = checkLink(link, "email_link", context);
 		switch (res.mode) {
 		case "email":
 			rc.totalEmail++;
@@ -306,13 +307,13 @@ function checkMIMEPart(part, rc, skip, context) {
 		reg = new RegExp("<a\\s*href=([^\\s>]*)", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
 			var link = result[1].replace(/^["']?|["']?$/gm,'');
-			processLink(link,rc,context);
+			processLink(link, rc, "email_link", context);
 		}
 	} else if (bodyType == "text/plain") {
 		// scan plain text
 		reg = new RegExp("\\s?((http|https|ftp)://[^\\s<]+[^\\s<\.)])", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
-			processLink(result[1],rc,context);
+			processLink(result[1], rc, "email_link", context);
 		}
 	}
 }
@@ -331,13 +332,13 @@ function inspectEMail(email) {
 	// console.log(JSON.stringify(email.headers));
 	var count = 0;
 	var total = 1;
-	if (checkEmailAddress(email.headers.from, context)) {
+	if (checkEmailAddress(email.headers.from, "email_from", context)) {
 		count++;
 	}
 	if (email.headers.sender !== undefined) {
 		total += email.headers.sender.length; 
 		email.headers.sender.forEach(sender => {
-			if (checkEmailAddress(sender, context)) {
+			if (checkEmailAddress(sender, "email_sender", context)) {
 				count++;
 			}
 		});
@@ -351,14 +352,14 @@ function inspectEMail(email) {
 	total = 0;
 	if (email.headers["reply-to"] !== undefined) {
 		total = 1;
-		if (checkEmailAddress(email.headers["reply-to"], context)) {
+		if (checkEmailAddress(email.headers["reply-to"], "email_replyto", context)) {
 			count++;
 		}
 	}
 	if (email.headers["return-path"] !== undefined) {
 		total += email.headers["return-path"].length;
 		email.headers["return-path"].forEach(replyTo => {
-			if (checkEmailAddress(replyTo, context)) {
+			if (checkEmailAddress(replyTo, "email_return", context)) {
 				count++;
 			}
 		});

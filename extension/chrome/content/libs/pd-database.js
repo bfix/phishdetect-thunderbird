@@ -74,13 +74,17 @@ var pdDatabase = {
 	// record incident:
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
-	recordIncident: function(raw, id, context) {
+	recordIncident: function(raw, id, type, context) {
 		let stmt = null;
 		try {
-			stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO incidents(timestamp,raw,indicator,context) VALUES(:ts,:raw,:indicator,:context)");
+			stmt = this.dbConn.createStatement(
+				"INSERT OR IGNORE INTO incidents(timestamp,raw,indicator,type,context) "+
+				"VALUES(:ts,:raw,:indicator,:type,:context)"
+			);
 			stmt.params.raw = raw;
 			stmt.params.ts = Date.now();
 			stmt.params.indicator = id;
+			stmt.params.type = type;
 			stmt.params.context = context;
 			stmt.executeStep();
 		}
@@ -95,19 +99,26 @@ var pdDatabase = {
 		}
 	},
 	
-	// get unreported incidents
-	getUnreported: function() {
+	// get incidents from database
+	getIncidents: function(unreported) {
+		// combine tables to retrieve records
 		let stmt = this.dbConn.createStatement(
 			"SELECT " +
 				"inc.id AS id," +
 				"inc.timestamp AS timestamp," +
 				"inc.raw AS raw," +
 				"ind.indicator AS indicator," +
+				"inc.type AS type," +
 				"ind.kind AS kind," +
 				"inc.context AS context " +
-			"FROM incidents inc,indicators ind " +
-			"WHERE inc.reported = 0 AND inc.indicator = ind.id"
+			"FROM incidents inc,indicators ind "+
+			"WHERE inc.indicator = ind.id"
 		);
+		// restrict search for unreported incidents
+		if (unreported) {
+			stmt += " AND inc.reported = 0";
+		}
+		// get records
 		let result = [];
 		try {
 			while (stmt.executeStep()) {
@@ -116,6 +127,7 @@ var pdDatabase = {
 					timestamp: stmt.row.timestamp,
 					raw: stmt.row.raw,
 					indicator: stmt.row.indicator,
+					type: stmt.row.type,
 					kind: stmt.row.kind,
 					context: stmt.row.context
 				});
@@ -160,6 +172,7 @@ var pdDatabase = {
 					"timestamp  INTEGER NOT NULL," +
 					"raw        VARCHAR(1024) NOT NULL," +
 					"indicator  INTEGER NOT NULL,"+
+					"type       VARCHAR(32) NOT NULL,"+
 					"context    VARCHAR(255) NOT NULL,"+
 					"reported   INTEGER DEFAULT 0,"+
 					"FOREIGN KEY(indicator) REFERENCES indicators(id),"+

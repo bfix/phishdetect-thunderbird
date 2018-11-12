@@ -39,7 +39,7 @@ function onload() {
 
 	// get unreported incidents
 	pdDatabase.init();
-	pending = pdDatabase.getUnreported();
+	pending = pdDatabase.getIncidents(true);
 	msg = "No";
 	if (pending !== undefined && pending.length > 0) {
 		msg = "" + pending.length;
@@ -49,7 +49,7 @@ function onload() {
 	document.getElementById("pd-dlg-reports-pending").value = msg + " unreported incidents";
 	
 	// create tree view
-	if (pending !== null) {
+	if (pending !== null && pending.length > 0) {
 		document.getElementById('pd-reports-tree').view = {
 			rowCount : pending.length,
 			getCellText : function(row,column) {
@@ -111,7 +111,7 @@ function sendReport() {
 		// send incident report
 		// TODO: no context passing
 		sendEvent(
-			incidentType[incident.kind], indicator, asHashed, user,
+			incidentType[incident.kind], incident.type, indicator, asHashed, user,
 			rc => {
 				if (rc.error !== undefined) {
 					if (!failed) {
