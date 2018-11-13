@@ -230,10 +230,10 @@ function sendReport(pending, withContext, asHashed, final) {
 function sendEvent(kind, type, indicator, hashed, user, id) {
 	// assemble report
 	let report = JSON.stringify({
-		"kind": kind,
+		// "kind": kind,
 		"type": type,
 		"indicator": indicator,
-		"hashed": hashed,
+		"hashed": ""+hashed,
 		"target_contact": user
 	});
 	console.log("Report: " + report);
