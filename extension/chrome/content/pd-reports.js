@@ -28,8 +28,11 @@ const incidentType = [ "Test", "Domain", "Email" ];
 // list of pending (unreported) incidents
 var pending = null;
 
+// flag if reports are currently processed
+var sending = false;
+
 // dialog is loaded
-function onload() {
+function onLoad() {
 
 	// set date of last reporting
 	var v = getPrefInt('reports_sync_last');
@@ -82,9 +85,21 @@ function onload() {
 	document.getElementById("pd-dlg-reports-context").checked = getPrefBool('reports_context'); 
 }
 
+// dialog is closed
+function onClose(event) {
+	// prevent close in case we are still sending...
+	if (sending) {
+		event.preventDefault();
+	}
+}
+
 // send a report
 // TODO: implement bulk reports on back-end
 function sendReport() {
+	// block "dialog close" and "send button" until all reports have been sent
+	sending = true;
+	document.getElementById('pd-dlg-send').disabled = true;
+
 	// get report settings
 	let user = getPrefString('reports_contact');
 	let withContext = document.getElementById("pd-dlg-reports-context").checked;
@@ -92,8 +107,7 @@ function sendReport() {
 	let withTest = getPrefBool('test') && getPrefBool('test_report');
 	
 	// send all incidents and flag them reported in database
-	let count = 0;
-	let failed = false;
+	var tasks = [];
 	for (var i = 0; i < pending.length; i++) {
 		let incident = pending[i];
 		
@@ -101,22 +115,38 @@ function sendReport() {
 		if (incident.kind == 0 && !withTest) {
 			continue;
 		}
-		
 		// prepare report
 		var indicator = incident.raw;
 		if (asHashed) {
 			indicator = incident.indicator;
 		}
-		
 		// send incident report
-		// TODO: no context passing
-		sendEvent(
-			incidentType[incident.kind], incident.type, indicator, asHashed, user,
-			rc => {
+		// TODO: missing context passing
+		tasks.push(
+			sendEvent(
+				incidentType[incident.kind], incident.type, indicator,
+				asHashed, user, incident.id
+			)
+		);
+	}
+	// record last report date
+	if (tasks.length > 0) {
+		prefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
+	}
+	
+	// wait for all requests to finish.
+	let failed = false;
+	Promise.all(tasks)
+		.then(values => {
+			for (var i = 0; i < values.length; i++) {
+				// convert response to JSON
+				var rc = values[i].json();
+				
+				// check for errors
 				if (rc.error !== undefined) {
 					if (!failed) {
 						failed = true;
-						console.error('Report on incident #' + incident.id + ' failed.');
+						console.error('Report on incident #' + pending[i].id + ' failed.');
 						dlgPrompt.alert(null, "Incident Report",
 							"Sending an incident report to the back-end node failed:\n\n" +
 							rc.error + "\n\n" +
@@ -126,19 +156,19 @@ function sendReport() {
 					return;
 				}
 				// flag incident as reported in database
-				console.log("Incident #" + incident.id + " reported.");
-				pdDatabase.setReported(incident.id);
-			});
-		count++;
-	}
-	// record last report date
-	if (count > 0) {
-		prefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
-	}
-	
-	// close dialog.
-	var wnd = Services.wm.getMostRecentWindow('phishdetect:reports');
-	if (wnd !== null) {
-		wnd.close();
-	}
+				console.log("Incident #" + pending[i].id + " reported.");
+				pdDatabase.setReported(pending[i].id);
+			}
+		}, error => {
+			// error occurred
+			console.error("sendReport(): " + error);
+		})
+		.then(() => {
+			// close dialog.
+			sending = false;
+			var wnd = Services.wm.getMostRecentWindow('phishdetect:reports');
+			if (wnd !== null) {
+				wnd.close();
+			}
+		});
 }

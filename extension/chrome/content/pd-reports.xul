@@ -7,7 +7,8 @@
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	id="pd-reports-dlg" title="PhishDetect Reports" drawtitle="true"
 	windowtype="phishdetect:reports" height="300" width="600"
-	persist="width height screenX screenY sizemode" onload="onload();">
+	persist="width height screenX screenY sizemode"
+	onload="onLoad();" onclose="onClose(event);">
 	
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-database.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 

@@ -102,8 +102,7 @@ var pdDatabase = {
 	// get incidents from database
 	getIncidents: function(unreported) {
 		// combine tables to retrieve records
-		let stmt = this.dbConn.createStatement(
-			"SELECT " +
+		var sql = "SELECT " +
 				"inc.id AS id," +
 				"inc.timestamp AS timestamp," +
 				"inc.raw AS raw," +
@@ -112,12 +111,12 @@ var pdDatabase = {
 				"ind.kind AS kind," +
 				"inc.context AS context " +
 			"FROM incidents inc,indicators ind "+
-			"WHERE inc.indicator = ind.id"
-		);
+			"WHERE inc.indicator = ind.id";
 		// restrict search for unreported incidents
 		if (unreported) {
-			stmt += " AND inc.reported = 0";
+			sql += " AND inc.reported = 0";
 		}
+		let stmt = this.dbConn.createStatement(sql);
 		// get records
 		let result = [];
 		try {

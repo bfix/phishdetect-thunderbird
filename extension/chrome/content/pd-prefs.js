@@ -77,14 +77,20 @@ var pdPrefsPane = {
 			// check node URL entry
 			case "node-url":
 				try {
+					var f = document.getElementById('pd-pref-' + field);
 					var url = new URL(v);
 					if (url.protocol != "http:" && url.protocol != "https:") {
-						document.getElementById('pd-pref-' + field).value += "https://";
+						f.value = "https://" + f.value;
+						return this.changed(field);
+					}
+					if (url.pathname != "/" || f.value.endsWith("/")) {
+						let idx = f.value.lastIndexOf("/");
+						f.value = f.value.substring(0, idx);
 						return this.changed(field);
 					}
 				}
 				catch(e) {
-					document.getElementById('pd-pref-' + field).value = "https://node.phishdetect.io/";
+					document.getElementById('pd-pref-' + field).value = "https://node.phishdetect.io";
 					return false;
 				}
 				return true;

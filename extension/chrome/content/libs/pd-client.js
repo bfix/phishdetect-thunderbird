@@ -45,12 +45,14 @@ function getPrefString(key) { return prefs.getCharPref(key); }
 function getPrefInt(key)    { return prefs.getIntPref(key); }
 function getPrefBool(key)   { return prefs.getBoolPref(key); }
 
+
 /*****************************************************************************
  * Node message exchange
  *****************************************************************************/
 
 // Send JSON-encoded request and expect JSON-encoded response.
-function sendRequest(uri, method, req, handler) {
+// @returns {Promise}
+function sendRequest(uri, method, req) {
 	var prop = {
 		method: method
 	};
@@ -59,15 +61,9 @@ function sendRequest(uri, method, req, handler) {
 		prop.headers = { "Content-Type": "application/json" };
 	}
 	var url = getPrefString("node_url") + uri;
-	fetch(url, prop)
-		.then(response => response.json())
-		.then(response => {
-			handler({ response: response })
-		})
-		.catch(error => {
-			handler({ error: error });
-		});
+	return fetch(url, prop);
 }
+
 
 /*****************************************************************************
  * Service methods provided
@@ -80,19 +76,9 @@ function initDatabase() {
 
 // fetch latest indicators
 function fetchIndicators(callback) {
-	sendRequest(
-		"/api/indicators/fetch/", "GET", null,
-		rc => {
-			// check for error case.
-			if (rc.error !== undefined) {
-				dlgPrompt.alert(null, "Node Synchronization",
-					"Fetching new indicators from the back-end node failed:\n\n" +
-					rc.error + "\n\n" +
-					"Make sure you are connected to the internet. If the problem "+
-					"persists, contact your node operator.");
-				return;
-			}
-
+	sendRequest("/api/indicators/fetch/", "GET", null)
+		.then(response => response.json())
+		.then(rc => {
 			// TODO: until there is a mechanism to fetch only indicators we
 			// haven't seen yet, we have to drop the 'indicators' table every
 			// time we start-up. This is wasting bandwidth and time!
@@ -100,13 +86,19 @@ function fetchIndicators(callback) {
 			pdDatabase.executeSimpleSQL("DELETE FROM indicators WHERE kind <> 0");
 			
 			// add indicators to database
-			pdDatabase.addIndicators(rc.response.domains, 1, callback);
-			pdDatabase.addIndicators(rc.response.emails, 2, callback);
+			pdDatabase.addIndicators(rc.domains, 1, callback);
+			pdDatabase.addIndicators(rc.emails, 2, callback);
 			
 			// update timestamp in preferences
 			prefs.setIntPref('node_sync_last', Math.floor(Date.now() / 1000));
-		}
-	);
+		})
+		.catch(error => {
+			dlgPrompt.alert(null, "Node Synchronization",
+				"Fetching new indicators from the back-end node failed:\n\n" +
+				error + "\n\n" +
+				"Make sure you are connected to the internet. If the problem "+
+				"persists, contact your node operator.");
+		});
 }
 
 // check if a string is contained in the list of indicators.
@@ -143,7 +135,8 @@ function manageReport() {
 }
 
 // send a notification about a detected indicator
-function sendEvent(kind, type, indicator, hashed, user, callback) {
+// @returns {Promise}
+function sendEvent(kind, type, indicator, hashed, user, id) {
 	// assemble report
 	let report = JSON.stringify({
 		"kind": kind,
@@ -155,7 +148,7 @@ function sendEvent(kind, type, indicator, hashed, user, callback) {
 	console.log("Report: " + report);
 
 	// send to PhishDetect node
-	sendRequest("/api/events/add/", "POST", report, callback);
+	return sendRequest("/api/events/add/", "POST", report);
 }
 
 /*****************************************************************************

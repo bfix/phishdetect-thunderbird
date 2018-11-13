@@ -1,5 +1,5 @@
 
-pref("extensions.phishdetect.node_url", "https://node.phishdetect.io/");
+pref("extensions.phishdetect.node_url", "https://node.phishdetect.io");
 pref("extensions.phishdetect.node_sync", 30);
 pref("extensions.phishdetect.node_sync_last", 0);
 pref("extensions.phishdetect.reports", false);
