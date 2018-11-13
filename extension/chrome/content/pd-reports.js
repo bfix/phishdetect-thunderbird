@@ -22,9 +22,6 @@
  * Handle reporting...
  *****************************************************************************/
 
-// list of incident types in reports
-const incidentType = [ "Test", "Domain", "Email" ];
-
 // list of pending (unreported) incidents
 var pending = null;
 
@@ -42,7 +39,7 @@ function onLoad() {
 
 	// get unreported incidents
 	pdDatabase.init();
-	pending = pdDatabase.getIncidents(true);
+	var pending = pdDatabase.getIncidents(true);
 	msg = "No";
 	if (pending !== undefined && pending.length > 0) {
 		msg = "" + pending.length;
@@ -95,80 +92,23 @@ function onClose(event) {
 
 // send a report
 // TODO: implement bulk reports on back-end
-function sendReport() {
+function dlgSendReport() {
 	// block "dialog close" and "send button" until all reports have been sent
 	sending = true;
 	document.getElementById('pd-dlg-send').disabled = true;
 
-	// get report settings
-	let user = getPrefString('reports_contact');
-	let withContext = document.getElementById("pd-dlg-reports-context").checked;
-	let asHashed = document.getElementById("pd-dlg-reports-hashed").checked;
-	let withTest = getPrefBool('test') && getPrefBool('test_report');
-	
-	// send all incidents and flag them reported in database
-	var tasks = [];
-	for (var i = 0; i < pending.length; i++) {
-		let incident = pending[i];
-		
-		// filter test incidents.
-		if (incident.kind == 0 && !withTest) {
-			continue;
-		}
-		// prepare report
-		var indicator = incident.raw;
-		if (asHashed) {
-			indicator = incident.indicator;
-		}
-		// send incident report
-		// TODO: missing context passing
-		tasks.push(
-			sendEvent(
-				incidentType[incident.kind], incident.type, indicator,
-				asHashed, user, incident.id
-			)
-		);
-	}
-	// record last report date
-	if (tasks.length > 0) {
-		prefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
-	}
-	
-	// wait for all requests to finish.
-	let failed = false;
-	Promise.all(tasks)
-		.then(values => {
-			for (var i = 0; i < values.length; i++) {
-				// convert response to JSON
-				var rc = values[i].json();
-				
-				// check for errors
-				if (rc.error !== undefined) {
-					if (!failed) {
-						failed = true;
-						console.error('Report on incident #' + pending[i].id + ' failed.');
-						dlgPrompt.alert(null, "Incident Report",
-							"Sending an incident report to the back-end node failed:\n\n" +
-							rc.error + "\n\n" +
-							"Make sure you are connected to the internet. If the problem "+
-							"persists, contact your node operator.");
-					}
-					return;
-				}
-				// flag incident as reported in database
-				console.log("Incident #" + pending[i].id + " reported.");
-				pdDatabase.setReported(pending[i].id);
-			}
-		}, error => {
-			// error occurred
-			console.error("sendReport(): " + error);
-		})
-		.then(() => {
+	// send report
+	sendReport(
+		pending,
+		document.getElementById("pd-dlg-reports-context").checked,
+		document.getElementById("pd-dlg-reports-hashed").checked,
+		() => {
 			// close dialog.
 			sending = false;
 			var wnd = Services.wm.getMostRecentWindow('phishdetect:reports');
 			if (wnd !== null) {
 				wnd.close();
 			}
-		});
+		}
+	);
 }

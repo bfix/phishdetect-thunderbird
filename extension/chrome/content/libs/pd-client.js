@@ -32,6 +32,15 @@ var dlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIP
 
 
 /*****************************************************************************
+ * Database handling
+ *****************************************************************************/
+
+//initialize database
+function initDatabase() {
+	pdDatabase.init();
+}
+
+/*****************************************************************************
  * Preferences (key/value pairs of options)
  *****************************************************************************/
 
@@ -66,14 +75,9 @@ function sendRequest(uri, method, req) {
 
 
 /*****************************************************************************
- * Service methods provided
+ * Indicator-related functions
  *****************************************************************************/
 	
-// initialize database
-function initDatabase() {
-	pdDatabase.init();
-}
-
 // fetch latest indicators
 function fetchIndicators(callback) {
 	sendRequest("/api/indicators/fetch/", "GET", null)
@@ -125,13 +129,100 @@ function checkForIndicator(raw, type, context) {
 	return false;
 }
 
-// open reporting dialog (if reports is enabled)
+
+/*****************************************************************************
+ * send pending incidents as a report
+ *****************************************************************************/
+
+//open reporting dialog (if reports is enabled)
 function manageReport() {
 	if (getPrefBool('reports')) {
 		toOpenWindowByType('phishdetect:reports', 'chrome://phishdetect/content/pd-reports.xul');
 	} else {
 		alert("Reporting disabled in preferences");
 	}
+}
+
+//list of incident types in reports
+const incidentType = [ "Test", "Domain", "Email" ];
+
+// send a report of pending incidents
+function sendReport(pending, withContext, asHashed, final) {
+	// get pending incidents if not an argument
+	if (pending === null) {
+		pending = pdDatabase.getIncidents(true);
+	}
+	// get report settings
+	let user = getPrefString('reports_contact');
+	let withTest = getPrefBool('test') && getPrefBool('test_report');
+	
+	// send all incidents and flag them reported in database
+	var tasks = [];
+	for (var i = 0; i < pending.length; i++) {
+		let incident = pending[i];
+		// flag incident as "in transit"
+		pdDatabase.setReported(pending[i].id, -1);
+		
+		// filter test incidents.
+		if (incident.kind == 0 && !withTest) {
+			continue;
+		}
+		// prepare report
+		var indicator = incident.raw;
+		if (asHashed) {
+			indicator = incident.indicator;
+		}
+		// send incident report
+		// TODO: missing context passing
+		tasks.push(
+			sendEvent(
+				incidentType[incident.kind], incident.type, indicator,
+				asHashed, user, incident.id
+			)
+		);
+	}
+	// record last report date
+	if (tasks.length > 0) {
+		prefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
+	}
+	// wait for all requests to finish.
+	let failed = false;
+	Promise.all(tasks)
+		.then(responses => Promise.all(responses.map(r => r.json())))
+		.then(values => {
+			for (var i = 0; i < values.length; i++) {
+				// convert response to JSON
+				var rc = values[i];
+				
+				// check for errors
+				if (rc.error !== undefined) {
+					console.error('Report on incident #' + pending[i].id + ' failed.');
+					if (!failed) {
+						failed = true;
+						dlgPrompt.alert(null, "Incident Report",
+							"Sending an incident report to the back-end node failed:\n\n" +
+							rc.error + "\n\n" +
+							"Make sure you are connected to the internet. If the problem "+
+							"persists, contact your node operator.");
+					}
+					// flag incident as "pending"
+					pdDatabase.setReported(pending[i].id, 0);
+					continue;
+				}
+				// flag incident as reported in database
+				console.log("Incident #" + pending[i].id + " reported.");
+				pdDatabase.setReported(pending[i].id, 1);
+			}
+		}, error => {
+			// error occurred
+			console.error("sendReport(): " + error);
+		})
+		.then(() => {
+			// callback on completion
+			if (final !== null) {
+				final();
+			}
+		});
 }
 
 // send a notification about a detected indicator

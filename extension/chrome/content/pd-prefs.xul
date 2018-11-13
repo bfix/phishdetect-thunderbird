@@ -74,9 +74,10 @@
 							<menulist id="pd-pref-reports-sync" preference="pref-reports-sync">
 								<menupopup>
 									<menuitem label="Disabled" value="0"/>
-									<menuitem label="once a day" value="1"/>
-									<menuitem label="once a week" value="7"/>
-									<menuitem label="once a month" value="30"/>
+									<menuitem label="On event" value="-1" selected="true"/>
+									<menuitem label="Once a day" value="1"/>
+									<menuitem label="Once a week" value="7"/>
+									<menuitem label="Once a month" value="30"/>
 								</menupopup>
 							</menulist>
 						</hbox>

@@ -57,6 +57,10 @@ function scanEmail() {
 		// set message header to reflect detection status
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 		statusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
+		// check for auto-send report
+		if (getPrefInt('reports_sync') == -1) {
+			sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+		}
 		// TODO: update rendering of message
 	});
 }
@@ -82,8 +86,13 @@ function scanFolder() {
 	var cb = function(aMsgHdr, aRC) {
 		// set message header to reflect detection status
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
-		if (aRC.phish)
+		if (aRC.phish) {
 			flagged++;
+			// check for auto-send report
+			if (getPrefInt('reports_sync') == -1) {
+				sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+			}
+		}
 		// status feedback
 		statusMsg('Evaluated ' + pos + ' of ' + count + ' emails in folder: ' + flagged + ' suspicious.');
 		pos++;
@@ -126,6 +135,10 @@ var newMailListener = {
 		if (!aMsgHdr.isRead) {
 			checkMessage(aMsgHdr, function(aMsgHdr, aRC) {
 				aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
+				// check for auto-send report
+				if (aRC.phish && getPrefInt('reports_sync') == -1) {
+					sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+				}
 			});
 		}
 	}
@@ -183,6 +196,7 @@ function showSanitizedMsg(aMode) {
 		sanitize(doc.body, aMode);
 	}
 }
+
 
 /*****************************************************************************
  * Handle PhishDetect column in message list

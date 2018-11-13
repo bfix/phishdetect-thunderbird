@@ -48,7 +48,7 @@
 			<spacer flex="1"/>
 			<vbox>
 				<spacer flex="1"/>
-				<button id="pd-dlg-send" label="Send report" oncommand="sendReport();"/>
+				<button id="pd-dlg-send" label="Send report" oncommand="dlgSendReport();"/>
 			</vbox>
 		</hbox>
 	</vbox>

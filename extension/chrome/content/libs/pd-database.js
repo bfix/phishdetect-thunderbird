@@ -139,8 +139,8 @@ var pdDatabase = {
 	},
 	
 	// flag incident as reported
-	setReported: function(id) {
-		this.dbConn.executeSimpleSQL('UPDATE incidents SET reported = 1 WHERE id = ' + id)
+	setReported: function(id, val) {
+		this.dbConn.executeSimpleSQL('UPDATE incidents SET reported = ' + val + ' WHERE id = ' + id)
 	},
 
 	/*******************************************************************
