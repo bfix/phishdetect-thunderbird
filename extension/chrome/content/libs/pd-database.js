@@ -37,6 +37,7 @@ var pdDatabase = {
 			}
 			stmt.bindParameters(params);
 		} else {
+			logger.debug("addIndicators(): " + indicators);
 			stmt.params.list = indicators;
 		}
 		stmt.executeAsync({
@@ -89,11 +90,11 @@ var pdDatabase = {
 			stmt.executeStep();
 		}
 		catch(e) {
-			console.error(e);
+			logger.error(e);
 		}
 		finally {
 			if (stmt !== null) {
-				console.log("recordIncident(" + id + ",'" + context + "')");
+				logger.log("recordIncident(" + id + ",'" + context + "')");
 				stmt.reset();
 			}
 		}

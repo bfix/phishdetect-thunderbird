@@ -24,6 +24,7 @@
 			<preference id="pref-test"              name="extensions.phishdetect.test"              type="bool"/>
 			<preference id="pref-test-rate"         name="extensions.phishdetect.test_rate"         type="int"/>
 			<preference id="pref-test-report"       name="extensions.phishdetect.test_report"       type="bool"/>
+			<preference id="pref-debug"             name="extensions.phishdetect.debug"             type="bool"/>
 		</preferences>
 
 		<tabbox>
@@ -112,6 +113,7 @@
 						</hbox>
 						<checkbox id="pd-pref-test-report" label="Report test incidents" preference="pref-test-report" checked="false"/>
 					</groupbox>
+					<checkbox id="pd-pref-debug" label="Debugging log:" preference="pref-debug" checked="false"/>
 				</tabpanel>
 
 				<!-- ===================================================

@@ -71,21 +71,23 @@ var pdPrefsPane = {
 	
 	// check changed fields
 	changed: function(field) {
-		var v = document.getElementById('pd-pref-' + field).value;
+		var f = document.getElementById('pd-pref-' + field);
+		var v = f.value;
+		var t = 0;
 		switch (field) {
 		
 			// check node URL entry
 			case "node-url":
 				try {
-					let f = document.getElementById('pd-pref-' + field);
+					logger.debug("changed(node-url): " + v);
 					let url = new URL(v);
+					logger.debug("=> URL: " + url);
 					if (url.protocol != "http:" && url.protocol != "https:") {
-						f.value = "https://" + f.value;
+						f.value = "https://" + v;
 						return this.changed(field);
 					}
-					if (url.pathname != "/" || f.value.endsWith("/")) {
-						let idx = f.value.lastIndexOf("/");
-						f.value = f.value.substring(0, idx);
+					if (url.pathname != "/") {
+						f.value = url.protocol + "//" + url.host;
 						return this.changed(field);
 					}
 				}
@@ -98,7 +100,7 @@ var pdPrefsPane = {
 			// check node sync interval
 			case "node-sync":
 				try {
-					let t = parseInt(v);
+					t = parseInt(v);
 					if (t < 0) {
 						t = 0;
 					} else if (t > 44640) {
@@ -118,7 +120,7 @@ var pdPrefsPane = {
 			// check node sync interval
 			case "test-rate":
 				try {
-					let t = parseInt(v);
+					t = parseInt(v);
 					if (t < 0) {
 						t = 0;
 					} else if (t > 100) {

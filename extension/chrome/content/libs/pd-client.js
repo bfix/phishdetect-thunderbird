@@ -32,6 +32,20 @@ var dlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIP
 
 
 /*****************************************************************************
+ * Logger
+ *****************************************************************************/
+
+var logger = {
+	log: function(msg) { console.log("PhishDetect: " + msg); },
+	error: function(msg) { console.log("PhishDetect: " + msg); },
+	debug: function(msg) {
+		if (getPrefBool('debug')) {
+			console.debug("PhishDetect: " + msg);
+		}
+	}
+}
+
+/*****************************************************************************
  * Database handling
  *****************************************************************************/
 
@@ -83,6 +97,17 @@ function fetchIndicators(callback) {
 	sendRequest("/api/indicators/fetch/", "GET", null)
 		.then(response => response.json())
 		.then(rc => {
+			// check for errors
+			if (rc.error !== undefined) {
+				logger.error('Fetch failed: ' + rc.error);
+				dlgPrompt.alert(null, "Fetch Indicators",
+					"Fetching indicators from the back-end node failed:\n\n" +
+					rc.error + "\n\n" +
+					"Make sure you are connected to the internet and that the "+
+					"preferences for the back-end node are set correctly.\n\n "+
+					"If the problem persists, contact your node operator.");
+				return;
+			}
 			// TODO: until there is a mechanism to fetch only indicators we
 			// haven't seen yet, we have to drop the 'indicators' table every
 			// time we start-up. This is wasting bandwidth and time!
@@ -109,7 +134,7 @@ function fetchIndicators(callback) {
 // provide a context (string, max 255 chars) to identify where
 // the indicator was detected (URL, MessageID,...)
 function checkForIndicator(raw, type, context) {
-	// console.log("==> checkForIndicator(" + s + ")");
+	logger.debug("==> checkForIndicator(" + s + ")");
 	// create entry for lookup
 	var hash = sha256.create();
 	hash.update(raw);
@@ -125,7 +150,6 @@ function checkForIndicator(raw, type, context) {
 		pdDatabase.recordIncident(raw, result[i].id, type, context);
 		return true;
 	}
-	// console.log(indicator);
 	return false;
 }
 
@@ -196,7 +220,7 @@ function sendReport(pending, withContext, asHashed, final) {
 				
 				// check for errors
 				if (rc.error !== undefined) {
-					console.error('Report on incident #' + pending[i].id + ' failed.');
+					logger.error('Report on incident #' + pending[i].id + ' failed.');
 					if (!failed) {
 						failed = true;
 						dlgPrompt.alert(null, "Incident Report",
@@ -210,12 +234,12 @@ function sendReport(pending, withContext, asHashed, final) {
 					continue;
 				}
 				// flag incident as reported in database
-				console.log("Incident #" + pending[i].id + " reported.");
+				logger.log("Incident #" + pending[i].id + " reported.");
 				pdDatabase.setReported(pending[i].id, 1);
 			}
 		}, error => {
 			// error occurred
-			console.error("sendReport(): " + error);
+			logger.error("sendReport(): " + error);
 		})
 		.then(() => {
 			// callback on completion
@@ -236,7 +260,7 @@ function sendEvent(kind, type, indicator, hashed, user, id) {
 		"hashed": ""+hashed,
 		"target_contact": user
 	});
-	console.log("Report: " + report);
+	logger.debug("Report: " + report);
 
 	// send to PhishDetect node
 	return sendRequest("/api/events/add/", "POST", report);
@@ -248,7 +272,7 @@ function sendEvent(kind, type, indicator, hashed, user, id) {
 
 // check domain
 function checkDomain(name, type, context) {
-	// console.log("checkDomain(" + name + ")");
+	logger.debug("checkDomain(" + name + ")");
 	// check full hostname (subdomain+.domain)
 	if (checkForIndicator(name, type + "_hostname", context)) {
 		return true
@@ -271,14 +295,14 @@ function checkEmailAddress(addr, type, context) {
 		}
 		return rc;
 	}
-	// console.log("checkEmailAddress(" + addr + ")");
+	logger.debug("checkEmailAddress(" + addr + ")");
 	// normalize email address
 	var reg = new RegExp("<([^>]*)", "gim");
 	var result;
 	while ((result = reg.exec(addr)) !== null) {
 		addr = result[1];
 	}
-	// console.log("=> " + addr);
+	logger.debug("=> " + addr);
 
 	// check if email address is an indicator.
 	if (checkForIndicator(addr, type, context)) {
@@ -289,20 +313,20 @@ function checkEmailAddress(addr, type, context) {
 	try {
 		domain = addr.split("@")[1];
 	} catch(error) {
-		console.error("addr=" + addr);
+		logger.error("email addr failed: " + addr);
 	}
 	return checkDomain(domain, type, context);
 }
 
 // check mail hops
 function checkMailHop(hop, context) {
-	// console.log("checkMailHop(" + hop + ")");
+	logger.debug("checkMailHop(" + hop + ")");
 	return false;
 }
 
 // check link
 function checkLink(link, type, context) {
-	// console.log("checkLink(" + link + ")");
+	logger.debug("checkLink(" + link + ")");
 	// check for email link
 	if (link.startsWith("mailto:")) {
 		return {
@@ -353,15 +377,15 @@ function checkMIMEPart(part, rc, skip, context) {
 			}
 			return;
 		default:
-			console.log("Skipped MIME type: " + part.contentType);
+			logger.log("Skipped MIME type: " + part.contentType);
 			for (let i = 0; i < part.parts.length; i++) {
-				console.log("==> " + part.parts[i].contentType);
+				logger.log("==> " + part.parts[i].contentType);
 			}
 			break;
 	}
 	if (usePart === null || usePart.body === null || bodyType === null) {
 		if (!skip) {
-			console.error("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
+			logger.error("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
 		}
 		return;
 	}
@@ -384,7 +408,7 @@ function checkMIMEPart(part, rc, skip, context) {
 			break;
 		}
 	}
-	// console.log("checkMIMEPart() body=" + usePart.body);
+	logger.debug("checkMIMEPart() body=" + usePart.body);
 	var reg, result;
 	if (bodyType == "text/html") {
 		// scan HTML content for links
@@ -408,12 +432,12 @@ function checkMIMEPart(part, rc, skip, context) {
 
 // process a MIME message object
 function inspectEMail(email) {
-	// console.log("inspectEMail(): " + email.headers.from);
+	logger.debug("inspectEMail(): " + email.headers.from);
 	var context = "From " + email.headers.from + " (" + email.headers.date + ")";
 	var list = [];
 
 	// check sender(s) of email
-	// console.log(JSON.stringify(email.headers));
+	logger.debug(JSON.stringify(email.headers));
 	var count = 0;
 	var total = 1;
 	if (checkEmailAddress(email.headers.from, "email_from", context)) {

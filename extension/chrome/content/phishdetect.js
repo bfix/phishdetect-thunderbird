@@ -275,6 +275,59 @@ function unblockLinks() {
 	showSanitizedMsg(false);
 }
 
+
+/*****************************************************************************
+ * Task scheduler
+ *****************************************************************************/
+
+// taskScheduler is called periodically to check for pending syncs
+function taskScheduler() {
+	var now = Date.now() / 1000;
+	logger.debug("taskScheduler(" + now + "):");
+
+	// get last sync timestamps and intervals
+	var lastNodeSync = getPrefInt('node_sync_last');
+	logger.debug("=> last node sync: " + lastNodeSync);
+	var nodeSyncInterval = getPrefInt('node_sync') * 60; // minutes
+	logger.debug("=> node sync interval: " + nodeSyncInterval);
+	var lastReportSync = getPrefInt('reports_sync_last');
+	logger.debug("=> last report sync: " + lastReportSync);
+	var reportSyncInterval = getPrefInt('reports_sync') * 86400; // days
+	logger.debug("=> report sync interval: " + reportSyncInterval);
+	
+	// check for pending node sync
+	if (nodeSyncInterval > 0 && now > (lastNodeSync + nodeSyncInterval)) {
+		// get latest indicators
+		statusMsg("Fetching indicators...");
+		fetchIndicators(function(rc, msg){
+			var out = "";
+			switch (rc) {
+				case -1:
+					out = "Database error -- " + msg;
+					break;
+				case 1:
+					out = (msg == "DONE" ? "Fetched indicators." : "Fetch cancelled.");
+					break;
+			}
+			if (out.length > 0) {
+				statusMsg(out);
+				logger.log(out);
+			}
+		});
+	}
+	
+	// check for pending node sync
+	if (reportSyncInterval > 0 && now > (lastReportSync + reportSyncInterval)) {
+		// send pending incidents
+		statusMsg("Sending pending incident reports...");
+		sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+		let msg = "Pending incident reports sent.";
+		statusMsg(msg);
+		logger.log(msg);
+	}	
+}	
+
+
 /*****************************************************************************
  * Initialize the PhishDetect extension.
  *****************************************************************************/
@@ -356,20 +409,7 @@ window.addEventListener("load", function load() {
     // Connect to (and initialize) database
 	initDatabase();
 
-	// get latest indicators
-	statusMsg("Fetching indicators...");
-	fetchIndicators(function(rc, msg){
-		switch (rc) {
-			case -1:
-				let out = "Database error -- " + msg;
-				statusMsg(out);
-				console.error(out);
-				break;
-			case 1:
-				let out = (msg == "DONE" ? "Fetched indicators" : "Fetch cancelled");
-				statusMsg(out);
-				console.log(out)
-				break;
-		}
-	});
+	// setup periodic scheduler for synchronization tasks (every minute)
+	setInterval(taskScheduler, 60000);
+
 }, false);
