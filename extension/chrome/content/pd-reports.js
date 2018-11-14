@@ -94,7 +94,7 @@ function onClose(event) {
 // TODO: implement bulk reports on back-end
 function dlgSendReport() {
 	// block "dialog close" and "send button" until all reports have been sent
-	sending = true;
+	var sending = true;
 	document.getElementById('pd-dlg-send').disabled = true;
 
 	// send report
@@ -105,7 +105,7 @@ function dlgSendReport() {
 		() => {
 			// close dialog.
 			sending = false;
-			var wnd = Services.wm.getMostRecentWindow('phishdetect:reports');
+			let wnd = Services.wm.getMostRecentWindow('phishdetect:reports');
 			if (wnd !== null) {
 				wnd.close();
 			}

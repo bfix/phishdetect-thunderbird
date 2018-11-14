@@ -26,7 +26,7 @@ var pdDatabase = {
 		
 	// add a list of (or a single) indicator to the database
 	addIndicators: function(indicators, kind, callback) {
-		let stmt = this.dbConn.createStatement("INSERT INTO indicators(indicator,kind) VALUES(:indicator,:kind)");
+		var stmt = this.dbConn.createStatement("INSERT INTO indicators(indicator,kind) VALUES(:indicator,:kind)");
 		if (Array.isArray(indicators)) {
 			let params = stmt.newBindingParamsArray();
 			for (let i = 0; i < indicators.length; i++) {
@@ -57,7 +57,7 @@ var pdDatabase = {
 	// returns a list of occurrences (same indicator for different kinds like
 	// domain, emails,...) or an empty list if the indicator is not found.
 	hasIndicator: function(indicator) {
-		let stmt = this.dbConn.createStatement("SELECT id,kind FROM indicators WHERE indicator = :indicator");
+		var stmt = this.dbConn.createStatement("SELECT id,kind FROM indicators WHERE indicator = :indicator");
 		try {
 			stmt.params.indicator = indicator;
 			let result = [];
@@ -75,7 +75,7 @@ var pdDatabase = {
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
 	recordIncident: function(raw, id, type, context) {
-		let stmt = null;
+		var stmt = null;
 		try {
 			stmt = this.dbConn.createStatement(
 				"INSERT OR IGNORE INTO incidents(timestamp,raw,indicator,type,context) "+
@@ -116,9 +116,9 @@ var pdDatabase = {
 		if (unreported) {
 			sql += " AND inc.reported = 0";
 		}
-		let stmt = this.dbConn.createStatement(sql);
+		var stmt = this.dbConn.createStatement(sql);
 		// get records
-		let result = [];
+		var result = [];
 		try {
 			while (stmt.executeStep()) {
 				result.push({
@@ -205,7 +205,8 @@ var pdDatabase = {
 	},
 
 	_dbCreateTables: function(adbConn) {
-	for (var name in this.dbSchema.tables)
-		adbConn.createTable(name, this.dbSchema.tables[name]);
+		for (let name in this.dbSchema.tables) {
+			adbConn.createTable(name, this.dbSchema.tables[name]);
+		}
 	},
 };

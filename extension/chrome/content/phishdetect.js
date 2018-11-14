@@ -33,7 +33,7 @@ var gMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
 // Check PhishDetect status for a message.
 function checkMessage(aMsgHdr, aCallback) {
 	// callback for MIME reader
-	let cb = function (aMsgHdr, aMimeMsg) {
+	var cb = function (aMsgHdr, aMimeMsg) {
 		// evaluate body by PhishDetect engine.
 		let rc = inspectEMail(aMimeMsg);
 		// callback to invoker
@@ -68,19 +68,19 @@ function scanEmail() {
 // Scan all emails in a folder (no-multi-select, no recursion!)
 function scanFolder() {
 	// get selected folder
-	let selFolders = gFolderTreeView.getSelectedFolders();
+	var selFolders = gFolderTreeView.getSelectedFolders();
 	if (selFolders.length != 1) {
 		alert("None or multiple folders selected - PhishDetect not run");
 		return;
 	}
-	let folder = selFolders[0];	
+	var folder = selFolders[0];	
 	
 	// check all emails in folder (not recursive!)
 	// and count suspicious emails detected
-	let msgArray = folder.messages;
-	let count = folder.getTotalMessages(false);
-	let pos = 1;
-	let flagged = 0;
+	var msgArray = folder.messages;
+	var count = folder.getTotalMessages(false);
+	var pos = 1;
+	var flagged = 0;
 
 	// callback for check function
 	var cb = function(aMsgHdr, aRC) {
@@ -108,7 +108,7 @@ function scanFolder() {
 
 // get PhishDetect header object
 function getPhishDetectStatus(aMsgHdr) {
-	let field = aMsgHdr.getStringProperty("X-Custom-PhishDetect");
+	var field = aMsgHdr.getStringProperty("X-Custom-PhishDetect");
 	if (field === null || field.length === 0) {
 		return null;
 	}
@@ -117,7 +117,7 @@ function getPhishDetectStatus(aMsgHdr) {
 
 // check if a header is flagged for 'phishing'
 function checkForPhish(aMsgHdr) {
-	let rc = getPhishDetectStatus(aMsgHdr);
+	var rc = getPhishDetectStatus(aMsgHdr);
 	if (rc === null) {
 		return false;
 	}
@@ -175,8 +175,8 @@ function sanitize(node, mode) {
 			break;
 	}
 	// recursively iterate over child nodes
-	let nodes = node.childNodes;
-	for (var i = 0; i < nodes.length; i++) {
+	var nodes = node.childNodes;
+	for (let i = 0; i < nodes.length; i++) {
         sanitize(nodes[i], mode);
 	}
 }
@@ -185,8 +185,8 @@ function sanitize(node, mode) {
 // used to render/display the message content.
 function showSanitizedMsg(aMode) {
 	// go through the message body and sanitize it
-	let browser = window.document.getElementById('messagepane');
-	let doc = browser.contentDocument;
+	var browser = window.document.getElementById('messagepane');
+	var doc = browser.contentDocument;
 	// TODO: check obsolence of getAttribute
 	
 	if (doc.body.getAttribute('phishdetect') != 'true' || !aMode) {
@@ -253,8 +253,8 @@ function statusMsg(msg) {
 
 // toggle show/hide details
 function showDetails(reset) {
-	let btn = document.getElementById("pd-details");
-	let details = document.getElementById("pd-indications");
+	var btn = document.getElementById("pd-details");
+	var details = document.getElementById("pd-indications");
 	if (reset || btn.getAttribute('data-state') == "1") {
 		btn.setAttribute("data-state", "0");
 		btn.label = "Show Details";
@@ -269,7 +269,7 @@ function showDetails(reset) {
 // unblock links
 function unblockLinks() {
 	// remove button (run only once)
-	let btn = document.getElementById("pd-block");
+	var btn = document.getElementById("pd-block");
 	btn.collapsed = true;
 	// post-process links
 	showSanitizedMsg(false);
@@ -285,7 +285,7 @@ window.addEventListener("load", function load() {
     window.removeEventListener("load", load, false);
 	
 	// add filter for incoming mails
-	let notificationService = Cc["@mozilla.org/messenger/msgnotificationservice;1"]
+	var notificationService = Cc["@mozilla.org/messenger/msgnotificationservice;1"]
 		.getService(Ci.nsIMsgFolderNotificationService);
 	notificationService.addListener(newMailListener, notificationService.msgAdded);
 
@@ -293,7 +293,7 @@ window.addEventListener("load", function load() {
 	Services.obs.addObserver(pdObserver, "MsgCreateDBView", false);
 
 	// handle message display
-	let messagePane = GetMessagePane();
+	var messagePane = GetMessagePane();
 	if (messagePane) {
 		// register PhishDetect callbacks:
 		
@@ -305,14 +305,14 @@ window.addEventListener("load", function load() {
 					document.getElementById('pd-deck').collapsed = true;
 					showDetails(true)
 					document.getElementById("pd-block").collapsed = false;
-					for (var i = 0; i < 6; i++) {
+					for (let i = 0; i < 6; i++) {
 						document.getElementById('pd-reason-'+i).collapsed = true;
 					}
 				},
 				onEndHeaders: function() {
 					// check if email is tagged by PhishDetect
-					let hdr = gFolderDisplay.selectedMessage;
-					let rc = getPhishDetectStatus(hdr);
+					var hdr = gFolderDisplay.selectedMessage;
+					var rc = getPhishDetectStatus(hdr);
 					if (rc !== null && rc.phish) {
 						// set notification bar content
 						let ts = new Date(rc.date);
@@ -320,7 +320,7 @@ window.addEventListener("load", function load() {
 							"Indications (found on " +
 							ts.toLocaleDateString() + " " +
 							ts.toLocaleTimeString() + "):";
-						for (var i = 0; i < rc.indications.length; i++) {
+						for (let i = 0; i < rc.indications.length; i++) {
 							var txt = document.getElementById('pd-reason-'+i);
 							txt.innerHTML = rc.indications[i];
 							txt.collapsed = false;
@@ -345,7 +345,7 @@ window.addEventListener("load", function load() {
 		// (3) when DOM content of the email is loaded
 		messagePane.addEventListener("DOMContentLoaded", function(event) {
 			// check if email is tagged by PhishDetect
-			let hdr = gFolderDisplay.selectedMessage;
+			var hdr = gFolderDisplay.selectedMessage;
 			if (hdr !== null && checkForPhish(hdr)) {
 				// display sanitized message
 				showSanitizedMsg(true);
@@ -361,12 +361,12 @@ window.addEventListener("load", function load() {
 	fetchIndicators(function(rc, msg){
 		switch (rc) {
 			case -1:
-				var out = "Database error -- " + msg;
+				let out = "Database error -- " + msg;
 				statusMsg(out);
 				console.error(out);
 				break;
 			case 1:
-				var out = (msg == "DONE" ? "Fetched indicators" : "Fetch cancelled");
+				let out = (msg == "DONE" ? "Fetched indicators" : "Fetch cancelled");
 				statusMsg(out);
 				console.log(out)
 				break;

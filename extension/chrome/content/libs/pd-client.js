@@ -120,7 +120,7 @@ function checkForIndicator(raw, type, context) {
 
 	// check if the indicator is listed.
 	var result = pdDatabase.hasIndicator(indicator);
-	for (var i = 0; i < result.length; i++) {
+	for (let i = 0; i < result.length; i++) {
 		// record the incident
 		pdDatabase.recordIncident(raw, result[i].id, type, context);
 		return true;
@@ -153,12 +153,12 @@ function sendReport(pending, withContext, asHashed, final) {
 		pending = pdDatabase.getIncidents(true);
 	}
 	// get report settings
-	let user = getPrefString('reports_contact');
-	let withTest = getPrefBool('test') && getPrefBool('test_report');
+	var user = getPrefString('reports_contact');
+	var withTest = getPrefBool('test') && getPrefBool('test_report');
 	
 	// send all incidents and flag them reported in database
 	var tasks = [];
-	for (var i = 0; i < pending.length; i++) {
+	for (let i = 0; i < pending.length; i++) {
 		let incident = pending[i];
 		// flag incident as "in transit"
 		pdDatabase.setReported(pending[i].id, -1);
@@ -168,7 +168,7 @@ function sendReport(pending, withContext, asHashed, final) {
 			continue;
 		}
 		// prepare report
-		var indicator = incident.raw;
+		let indicator = incident.raw;
 		if (asHashed) {
 			indicator = incident.indicator;
 		}
@@ -186,11 +186,11 @@ function sendReport(pending, withContext, asHashed, final) {
 		prefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
 	}
 	// wait for all requests to finish.
-	let failed = false;
+	var failed = false;
 	Promise.all(tasks)
 		.then(responses => Promise.all(responses.map(r => r.json())))
 		.then(values => {
-			for (var i = 0; i < values.length; i++) {
+			for (let i = 0; i < values.length; i++) {
 				// convert response to JSON
 				var rc = values[i];
 				
@@ -229,7 +229,7 @@ function sendReport(pending, withContext, asHashed, final) {
 // @returns {Promise}
 function sendEvent(kind, type, indicator, hashed, user, id) {
 	// assemble report
-	let report = JSON.stringify({
+	var report = JSON.stringify({
 		// "kind": kind,
 		"type": type,
 		"indicator": indicator,
@@ -266,7 +266,7 @@ function checkEmailAddress(addr, type, context) {
 	// check if addr is a list of addresses
 	if (Array.isArray(addr)) {
 		let rc = false;
-		for (var i = 0; i < addr.length; i++) {
+		for (let i = 0; i < addr.length; i++) {
 			rc |= checkEmailAddress(addr[i], type, context);
 		}
 		return rc;
@@ -332,7 +332,7 @@ function checkMIMEPart(part, rc, skip, context) {
 			break;
 		// plain text / HTML alternatives
 		case "multipart/alternative":
-			for (var i = 0; i < part.parts.length; i++) {
+			for (let i = 0; i < part.parts.length; i++) {
 				if (part.parts[i].contentType == "text/plain" && usePart === null) {
 					usePart = part.parts[i];
 					bodyType = usePart.contentType;
@@ -348,13 +348,13 @@ function checkMIMEPart(part, rc, skip, context) {
 		case "multipart/signed":
 		case "multipart/mixed":
 			// process all parts
-			for (var i = 0; i < part.parts.length; i++) {
+			for (let i = 0; i < part.parts.length; i++) {
 				checkMIMEPart(part.parts[i], rc, true, context);
 			}
 			return;
 		default:
 			console.log("Skipped MIME type: " + part.contentType);
-			for (var i = 0; i < part.parts.length; i++) {
+			for (let i = 0; i < part.parts.length; i++) {
 				console.log("==> " + part.parts[i].contentType);
 			}
 			break;
@@ -390,7 +390,7 @@ function checkMIMEPart(part, rc, skip, context) {
 		// scan HTML content for links
 		reg = new RegExp("<a\\s*href=([^\\s>]*)", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
-			var link = result[1].replace(/^["']?|["']?$/gm,'');
+			let link = result[1].replace(/^["']?|["']?$/gm,'');
 			processLink(link, rc, "email_link", context);
 		}
 	} else if (bodyType == "text/plain") {
@@ -490,7 +490,7 @@ function inspectEMail(email) {
 	
 	// TEST mode:
 	if (getPrefBool("test") && list.length == 0) {
-		var rate = getPrefInt("test_rate") / 100;
+		let rate = getPrefInt("test_rate") / 100;
 		if (Math.random() < rate) {
 			list.push("DEMO modus -- not based on detection!");
 		}
@@ -511,7 +511,7 @@ function inspectEMail(email) {
 //binary => hex string
 function bin2hex(array) {
 	var s = "";
-	for (var i = 0; i < array.length; i++) {
+	for (let i = 0; i < array.length; i++) {
 		s += array[i].toString(16).padStart(2,'0');
 	}
 	return s;
@@ -521,7 +521,7 @@ function bin2hex(array) {
 function hex2bin(s) {
 	var b = [];
 	try {
-		for (var i = 0; i < s.length-1; i += 2) {
+		for (let i = 0; i < s.length-1; i += 2) {
 			b.push(parseInt(s.substr(i, 2), 16));
 		}
 	} catch(e) {
@@ -529,4 +529,3 @@ function hex2bin(s) {
 	}
 	return b;
 }
-
