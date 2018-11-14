@@ -199,80 +199,12 @@ function showSanitizedMsg(aMode) {
 
 
 /*****************************************************************************
- * Handle PhishDetect column in message list
- *****************************************************************************/
-
-// Handler for the PhishDetect column in the message list.
-var pdColumnHandler = {
-	getCellText: function(row, col) {
-		return null;
-	},
-	getSortStringForRow: function(row) {
-		let hdr = gDBView.getMsgHdrAt(row);
-		return ""+checkForPhish(hdr);
-	},
-	isString: function() {
-		return true;
-	},
-	getCellProperties: function(row, col, props){
-	},
-	getRowProperties: function(row, props){
-	},
-	getImageSrc: function(row, col) {
-		let hdr = gDBView.getMsgHdrAt(row);
-		if (checkForPhish(hdr))
-			return "chrome://phishdetect/content/icon16.png";
-		return null;
-	},
-	getSortLongForRow: function(hdr) {
-		return 0;
-	}
-};
-
-// Register observer for PhishDetect column.
-var pdObserver = {
-	observe: function(aMsgFolder, aTopic, aData) {  
-		gDBView.addColumnHandler("pd-column-item", pdColumnHandler);
-	}
-};
-
-/*****************************************************************************
  * Handle status messages
  *****************************************************************************/
 
 // Display message on Thunderbird status bar.
 function statusMsg(msg) {
 	document.getElementById("statusText").label = "PhishDetect: " + msg;
-}
-
-/*****************************************************************************
- * Handle notification bar functionality:
- * - expand/hide of details
- * - unblock links
- *****************************************************************************/
-
-// toggle show/hide details
-function showDetails(reset) {
-	var btn = document.getElementById("pd-details");
-	var details = document.getElementById("pd-indications");
-	if (reset || btn.getAttribute('data-state') == "1") {
-		btn.setAttribute("data-state", "0");
-		btn.label = "Show Details";
-		details.collapsed = true;
-	} else {
-		btn.setAttribute("data-state", "1");
-		btn.label = "Hide Details";
-		details.collapsed = false;
-	}
-}
-
-// unblock links
-function unblockLinks() {
-	// remove button (run only once)
-	var btn = document.getElementById("pd-block");
-	btn.collapsed = true;
-	// post-process links
-	showSanitizedMsg(false);
 }
 
 
@@ -404,6 +336,9 @@ window.addEventListener("load", function load() {
 				showSanitizedMsg(true);
 			}
 		}, true);
+
+		// (4) handle context menu events in the message pane
+		messagePane.addEventListener("contextmenu", mailViewContext, true);
     }
 	
     // Connect to (and initialize) database

@@ -32,6 +32,7 @@
 				<tab label="Node"/>
 				<tab label="Reports"/>
 				<tab label="Misc"/>
+				<tab label="" collapsed="true"/>
 			</tabs>
 			
 			<tabpanels>

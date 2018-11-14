@@ -1,8 +1,15 @@
 <?xml version="1.0"?>
 <overlay id="pd-context" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
+	<script type="text/javascript" src="chrome://phishdetect/content/pd-context.js"/> 
+
 	<popup id="mailContext">
-		<menuitem id="pd-context-mail" class="menuitem-iconic" image="chrome://phishdetect/content/icon16.png" label="Run PhishDetect on Email" oncommand="scanEmail();"/>
+		<menu id="pd-context-mail" class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="PhishDetect">
+			<menupopup>
+				<menuitem id="pd-context-mail" label="(Re-)Check Email" oncommand="scanEmail();"/>
+				<menuitem id="pd-context-link" label="Check Link" oncommand="contextCheckLink(event);" collapsed="true"/>
+			</menupopup>
+		</menu>
 	</popup>
 	<menupopup id="folderPaneContext">
 		<menu id="pd-context-folder" class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="PhishDetect">
