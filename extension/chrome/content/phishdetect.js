@@ -23,7 +23,7 @@
 Cu.import("resource:///modules/gloda/mimemsg.js");
 
 // nsIMessenger instance for access to messages
-var gMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
+var pdMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
 
 	
 /*****************************************************************************
@@ -31,11 +31,11 @@ var gMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
  *****************************************************************************/
 
 // Check PhishDetect status for a message.
-function checkMessage(aMsgHdr, aCallback) {
+function pdCheckMessage(aMsgHdr, aCallback) {
 	// callback for MIME reader
 	var cb = function (aMsgHdr, aMimeMsg) {
 		// evaluate body by PhishDetect engine.
-		let rc = inspectEMail(aMimeMsg);
+		let rc = pdInspectEMail(aMimeMsg);
 		// callback to invoker
 		aCallback(aMsgHdr, rc);
 	};
@@ -50,23 +50,23 @@ function checkMessage(aMsgHdr, aCallback) {
  *****************************************************************************/
 
 // Scan single email message.
-function scanEmail() {
-	statusMsg('Evaluating email...');
+function pdScanEmail() {
+	pdStatusMsg('Evaluating email...');
 	var hdr = gFolderDisplay.selectedMessage;
-	checkMessage(hdr, function(aMsgHdr, aRC) {
+	pdCheckMessage(hdr, function(aMsgHdr, aRC) {
 		// set message header to reflect detection status
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
-		statusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
+		pdStatusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
 		// check for auto-send report
-		if (getPrefInt('reports_sync') == -1) {
-			sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+		if (pdGetPrefInt('reports_sync') == -1) {
+			pdSendReport(null, pdGetPrefBool('reports_context'), pdGetPrefBool('reports_hashed'), null);
 		}
 		// TODO: update rendering of message
 	});
 }
 
 // Scan all emails in a folder (no-multi-select, no recursion!)
-function scanFolder() {
+function pdScanFolder() {
 	// get selected folder
 	var selFolders = gFolderTreeView.getSelectedFolders();
 	if (selFolders.length != 1) {
@@ -89,12 +89,12 @@ function scanFolder() {
 		if (aRC.phish) {
 			flagged++;
 			// check for auto-send report
-			if (getPrefInt('reports_sync') == -1) {
-				sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+			if (pdGetPrefInt('reports_sync') == -1) {
+				pdSendReport(null, pdGetPrefBool('reports_context'), pdGetPrefBool('reports_hashed'), null);
 			}
 		}
 		// status feedback
-		statusMsg('Evaluated ' + pos + ' of ' + count + ' emails in folder: ' + flagged + ' suspicious.');
+		pdStatusMsg('Evaluated ' + pos + ' of ' + count + ' emails in folder: ' + flagged + ' suspicious.');
 		pos++;
 		// TODO: update rendering of message 
 	}
@@ -102,12 +102,12 @@ function scanFolder() {
 	while (msgArray.hasMoreElements()) {
 		// evaluate email content
 		let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
-		checkMessage(msgHdr, cb);
+		pdCheckMessage(msgHdr, cb);
 	}
 }
 
 // get PhishDetect header object
-function getPhishDetectStatus(aMsgHdr) {
+function pdGetPhishDetectStatus(aMsgHdr) {
 	var field = aMsgHdr.getStringProperty("X-Custom-PhishDetect");
 	if (field === null || field.length === 0) {
 		return null;
@@ -116,8 +116,8 @@ function getPhishDetectStatus(aMsgHdr) {
 }
 
 // check if a header is flagged for 'phishing'
-function checkForPhish(aMsgHdr) {
-	var rc = getPhishDetectStatus(aMsgHdr);
+function pdCheckForPhish(aMsgHdr) {
+	var rc = pdGetPhishDetectStatus(aMsgHdr);
 	if (rc === null) {
 		return false;
 	}
@@ -130,14 +130,14 @@ function checkForPhish(aMsgHdr) {
 
 // Callback for incoming emails: Evaluate message body and add a new header
 // attribute 'X-Custom-PhishDetect' to record email status.
-var newMailListener = {
+var pdNewMailListener = {
 	msgAdded: function(aMsgHdr) {
 		if (!aMsgHdr.isRead) {
-			checkMessage(aMsgHdr, function(aMsgHdr, aRC) {
+			pdCheckMessage(aMsgHdr, function(aMsgHdr, aRC) {
 				aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 				// check for auto-send report
-				if (aRC.phish && getPrefInt('reports_sync') == -1) {
-					sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+				if (aRC.phish && pdGetPrefInt('reports_sync') == -1) {
+					pdSendReport(null, pdGetPrefBool('reports_context'), pdGetPrefBool('reports_hashed'), null);
 				}
 			});
 		}
@@ -150,7 +150,7 @@ var newMailListener = {
 
 // Sanitize (remove/modify possible suspicious content) from a HTML node
 // (and its successors) in a message display.
-function sanitize(node, mode) {
+function pdSanitize(node, mode) {
 	// modify DOM on the fly
 	switch (node.nodeName) {
 		case 'A':
@@ -177,13 +177,13 @@ function sanitize(node, mode) {
 	// recursively iterate over child nodes
 	var nodes = node.childNodes;
 	for (let i = 0; i < nodes.length; i++) {
-        sanitize(nodes[i], mode);
+        pdSanitize(nodes[i], mode);
 	}
 }
 
 // Sanitize (remove/modify possible suspicious content) from the HTML document
 // used to render/display the message content.
-function showSanitizedMsg(aMode) {
+function pdShowSanitizedMsg(aMode) {
 	// go through the message body and sanitize it
 	var browser = window.document.getElementById('messagepane');
 	var doc = browser.contentDocument;
@@ -193,7 +193,7 @@ function showSanitizedMsg(aMode) {
 		// only process once...
 		doc.body.setAttribute('phishdetect','true');
 		// process email body
-		sanitize(doc.body, aMode);
+		pdSanitize(doc.body, aMode);
 	}
 }
 
@@ -203,7 +203,7 @@ function showSanitizedMsg(aMode) {
  *****************************************************************************/
 
 // Display message on Thunderbird status bar.
-function statusMsg(msg) {
+function pdStatusMsg(msg) {
 	document.getElementById("statusText").label = "PhishDetect: " + msg;
 }
 
@@ -213,25 +213,25 @@ function statusMsg(msg) {
  *****************************************************************************/
 
 // taskScheduler is called periodically to check for pending syncs
-function taskScheduler() {
+function pdTaskScheduler() {
 	var now = Date.now() / 1000;
-	logger.debug("taskScheduler(" + now + "):");
+	pdLogger.debug("taskScheduler(" + now + "):");
 
 	// get last sync timestamps and intervals
-	var lastNodeSync = getPrefInt('node_sync_last');
-	logger.debug("=> last node sync: " + lastNodeSync);
-	var nodeSyncInterval = getPrefInt('node_sync') * 60; // minutes
-	logger.debug("=> node sync interval: " + nodeSyncInterval);
-	var lastReportSync = getPrefInt('reports_sync_last');
-	logger.debug("=> last report sync: " + lastReportSync);
-	var reportSyncInterval = getPrefInt('reports_sync') * 86400; // days
-	logger.debug("=> report sync interval: " + reportSyncInterval);
+	var lastNodeSync = pdGetPrefInt('node_sync_last');
+	pdLogger.debug("=> last node sync: " + lastNodeSync);
+	var nodeSyncInterval = pdGetPrefInt('node_sync') * 60; // minutes
+	pdLogger.debug("=> node sync interval: " + nodeSyncInterval);
+	var lastReportSync = pdGetPrefInt('reports_sync_last');
+	pdLogger.debug("=> last report sync: " + lastReportSync);
+	var reportSyncInterval = pdGetPrefInt('reports_sync') * 86400; // days
+	pdLogger.debug("=> report sync interval: " + reportSyncInterval);
 	
 	// check for pending node sync
 	if (nodeSyncInterval > 0 && now > (lastNodeSync + nodeSyncInterval)) {
 		// get latest indicators
-		statusMsg("Fetching indicators...");
-		fetchIndicators(function(rc, msg){
+		pdStatusMsg("Fetching indicators...");
+		pdFetchIndicators(function(rc, msg){
 			var out = "";
 			switch (rc) {
 				case -1:
@@ -242,8 +242,8 @@ function taskScheduler() {
 					break;
 			}
 			if (out.length > 0) {
-				statusMsg(out);
-				logger.log(out);
+				pdStatusMsg(out);
+				pdLogger.log(out);
 			}
 		});
 	}
@@ -251,11 +251,11 @@ function taskScheduler() {
 	// check for pending node sync
 	if (reportSyncInterval > 0 && now > (lastReportSync + reportSyncInterval)) {
 		// send pending incidents
-		statusMsg("Sending pending incident reports...");
-		sendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
+		pdStatusMsg("Sending pending incident reports...");
+		pdSendReport(null, getPrefBool('reports_context'), getPrefBool('reports_hashed'), null);
 		let msg = "Pending incident reports sent.";
-		statusMsg(msg);
-		logger.log(msg);
+		pdStatusMsg(msg);
+		pdLogger.log(msg);
 	}	
 }	
 
@@ -272,7 +272,7 @@ window.addEventListener("load", function load() {
 	// add filter for incoming mails
 	var notificationService = Cc["@mozilla.org/messenger/msgnotificationservice;1"]
 		.getService(Ci.nsIMsgFolderNotificationService);
-	notificationService.addListener(newMailListener, notificationService.msgAdded);
+	notificationService.addListener(pdNewMailListener, notificationService.msgAdded);
 
 	// add custom column for PhishDetect in message list view
 	Services.obs.addObserver(pdObserver, "MsgCreateDBView", false);
@@ -288,7 +288,7 @@ window.addEventListener("load", function load() {
 				onStartHeaders: function() {
 					// default is no PhishDetect notification bar
 					document.getElementById('pd-deck').collapsed = true;
-					showDetails(true)
+					pdShowDetails(true);
 					document.getElementById("pd-block").collapsed = false;
 					for (let i = 0; i < 6; i++) {
 						document.getElementById('pd-reason-'+i).collapsed = true;
@@ -297,7 +297,7 @@ window.addEventListener("load", function load() {
 				onEndHeaders: function() {
 					// check if email is tagged by PhishDetect
 					var hdr = gFolderDisplay.selectedMessage;
-					var rc = getPhishDetectStatus(hdr);
+					var rc = pdGetPhishDetectStatus(hdr);
 					if (rc !== null && rc.phish) {
 						// set notification bar content
 						let ts = new Date(rc.date);
@@ -331,20 +331,20 @@ window.addEventListener("load", function load() {
 		messagePane.addEventListener("DOMContentLoaded", function(event) {
 			// check if email is tagged by PhishDetect
 			var hdr = gFolderDisplay.selectedMessage;
-			if (hdr !== null && checkForPhish(hdr)) {
+			if (hdr !== null && pdCheckForPhish(hdr)) {
 				// display sanitized message
-				showSanitizedMsg(true);
+				pdShowSanitizedMsg(true);
 			}
 		}, true);
 
 		// (4) handle context menu events in the message pane
-		messagePane.addEventListener("contextmenu", mailViewContext, true);
+		messagePane.addEventListener("contextmenu", pdMailViewContext, true);
     }
 	
     // Connect to (and initialize) database
-	initDatabase();
+	pdInitDatabase();
 
 	// setup periodic scheduler for synchronization tasks (every minute)
-	setInterval(taskScheduler, 60000);
+	setInterval(pdTaskScheduler, 60000);
 
 }, false);

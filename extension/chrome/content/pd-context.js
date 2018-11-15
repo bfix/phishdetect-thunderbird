@@ -23,16 +23,16 @@
  *****************************************************************************/
 
 // reference to view object (context for menu)
-var contextNode = null;
+var pdContextNode = null;
 
 // handle context menu popup
-function mailViewContext(event) {
+function pdMailViewContext(event) {
 	// assemble context menu depending on the object
-	contextNode = event.target;
+	pdContextNode = event.target;
 	document.getElementById("pd-context-link").collapsed = true;
 	switch (event.target.localName.toUpperCase()) {
 	case 'A':
-		logger.log("Context on link in email: " + contextNode);
+		pdLogger.log("Context on link in email: " + pdContextNode);
 		document.getElementById("pd-context-link").collapsed = false;
 		break;
 	default:
@@ -41,21 +41,22 @@ function mailViewContext(event) {
 }
 
 // "check link" selected from context menu
-function contextCheckLink(event) {
+function pdContextCheckLink(event) {
 	// check for existing context object
-	if (contextNode === null) {
+	if (pdContextNode === null) {
 		return;
 	}
-	// send link to back-end for checks
-	var request = JSON.stringify({
-		"url": contextNode.getAttribute('href')
-	});
-	logger.debug("Check URL: " + request);
-
-	// send to PhishDetect node
-	sendRequest("/api/check/", "POST", request)
-		.then(response => response.json())
-		.then(response => {
-			logger.log(JSON.stringify(response));
-		});
+	// show check dialog
+	toOpenWindowByType('phishdetect:check', 'chrome://phishdetect/content/pd-check.xul');
+	pdStatusMsg("Checking URL...");
 }
+
+//open reporting dialog (if reports is enabled)
+function pdManageReport() {
+	if (pdGetPrefBool('reports')) {
+		toOpenWindowByType('phishdetect:reports', 'chrome://phishdetect/content/pd-reports.xul');
+	} else {
+		alert("Reporting disabled in preferences");
+	}
+}
+

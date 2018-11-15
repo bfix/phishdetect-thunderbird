@@ -22,8 +22,8 @@
 								Possible phishing email detected. All links in the message have been BLOCKED.
 							</description>
 						</vbox>
-						<button id="pd-details" label="Show Details" data-state="0" oncommand="showDetails(false);"/>
-						<button id="pd-block" label="Unblock links" oncommand="unblockLinks();"/>
+						<button id="pd-details" label="Show Details" data-state="0" oncommand="pdShowDetails(false);"/>
+						<button id="pd-block" label="Unblock links" oncommand="pdUnblockLinks();"/>
 					</hbox>
 				</vbox>
 				<vbox id="pd-indications" flex="1" collapsed="true">

@@ -30,7 +30,7 @@ var pdColumnHandler = {
 	},
 	getSortStringForRow: function(row) {
 		let hdr = gDBView.getMsgHdrAt(row);
-		return ""+checkForPhish(hdr);
+		return ""+pdCheckForPhish(hdr);
 	},
 	isString: function() {
 		return true;
@@ -41,7 +41,7 @@ var pdColumnHandler = {
 	},
 	getImageSrc: function(row, col) {
 		let hdr = gDBView.getMsgHdrAt(row);
-		if (checkForPhish(hdr))
+		if (pdCheckForPhish(hdr))
 			return "chrome://phishdetect/content/icon16.png";
 		return null;
 	},
@@ -65,7 +65,7 @@ var pdObserver = {
  *****************************************************************************/
 
 // toggle show/hide details
-function showDetails(reset) {
+function pdShowDetails(reset) {
 	var btn = document.getElementById("pd-details");
 	var details = document.getElementById("pd-indications");
 	if (reset || btn.getAttribute('data-state') == "1") {
@@ -80,10 +80,10 @@ function showDetails(reset) {
 }
 
 // unblock links
-function unblockLinks() {
+function pdUnblockLinks() {
 	// remove button (run only once)
 	var btn = document.getElementById("pd-block");
 	btn.collapsed = true;
 	// post-process links
-	showSanitizedMsg(false);
+	pdShowSanitizedMsg(false);
 }

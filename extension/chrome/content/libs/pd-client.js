@@ -28,18 +28,18 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
-var dlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
+var pdDlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
 
 
 /*****************************************************************************
  * Logger
  *****************************************************************************/
 
-var logger = {
+var pdLogger = {
 	log: function(msg) { console.log("PhishDetect: " + msg); },
 	error: function(msg) { console.log("PhishDetect: " + msg); },
 	debug: function(msg) {
-		if (getPrefBool('debug')) {
+		if (pdGetPrefBool('debug')) {
 			console.debug("PhishDetect: " + msg);
 		}
 	}
@@ -50,7 +50,7 @@ var logger = {
  *****************************************************************************/
 
 //initialize database
-function initDatabase() {
+function pdInitDatabase() {
 	pdDatabase.init();
 }
 
@@ -59,14 +59,14 @@ function initDatabase() {
  *****************************************************************************/
 
 // Get the PhishDetect preferences branch
-var prefs = Services.prefs.getBranch("extensions.phishdetect.");
+var pdPrefs = Services.prefs.getBranch("extensions.phishdetect.");
 
 // Get a preference value for a given key.
 // Setter methods are not provided; changes are made by the
 // user in the "Preferences" dialog.
-function getPrefString(key) { return prefs.getCharPref(key); }
-function getPrefInt(key)    { return prefs.getIntPref(key); }
-function getPrefBool(key)   { return prefs.getBoolPref(key); }
+function pdGetPrefString(key) { return pdPrefs.getCharPref(key); }
+function pdGetPrefInt(key)    { return pdPrefs.getIntPref(key); }
+function pdGetPrefBool(key)   { return pdPrefs.getBoolPref(key); }
 
 
 /*****************************************************************************
@@ -75,7 +75,7 @@ function getPrefBool(key)   { return prefs.getBoolPref(key); }
 
 // Send JSON-encoded request and expect JSON-encoded response.
 // @returns {Promise}
-function sendRequest(uri, method, req) {
+function pdSendRequest(uri, method, req) {
 	var prop = {
 		method: method
 	};
@@ -83,7 +83,7 @@ function sendRequest(uri, method, req) {
 		prop.body = req;
 		prop.headers = { "Content-Type": "application/json" };
 	}
-	var url = getPrefString("node_url") + uri;
+	var url = pdGetPrefString("node_url") + uri;
 	return fetch(url, prop);
 }
 
@@ -93,8 +93,8 @@ function sendRequest(uri, method, req) {
  *****************************************************************************/
 	
 // fetch latest indicators
-function fetchIndicators(callback) {
-	sendRequest("/api/indicators/fetch/", "GET", null)
+function pdFetchIndicators(callback) {
+	pdSendRequest("/api/indicators/fetch/", "GET", null)
 		.then(response => response.json())
 		.then(rc => {
 			// check for errors
@@ -119,10 +119,10 @@ function fetchIndicators(callback) {
 			pdDatabase.addIndicators(rc.emails, 2, callback);
 			
 			// update timestamp in preferences
-			prefs.setIntPref('node_sync_last', Math.floor(Date.now() / 1000));
+			pdPrefs.setIntPref('node_sync_last', Math.floor(Date.now() / 1000));
 		})
 		.catch(error => {
-			dlgPrompt.alert(null, "Node Synchronization",
+			pdDlgPrompt.alert(null, "Node Synchronization",
 				"Fetching new indicators from the back-end node failed:\n\n" +
 				error + "\n\n" +
 				"Make sure you are connected to the internet. If the problem "+
@@ -133,8 +133,8 @@ function fetchIndicators(callback) {
 // check if a string is contained in the list of indicators.
 // provide a context (string, max 255 chars) to identify where
 // the indicator was detected (URL, MessageID,...)
-function checkForIndicator(raw, type, context) {
-	logger.debug("==> checkForIndicator(" + s + ")");
+function pdCheckForIndicator(raw, type, context) {
+	pdLogger.debug("==> checkForIndicator(" + raw + ")");
 	// create entry for lookup
 	var hash = sha256.create();
 	hash.update(raw);
@@ -159,10 +159,10 @@ function checkForIndicator(raw, type, context) {
  *****************************************************************************/
 
 // check domain
-function checkDomain(name, type, context) {
-	logger.debug("checkDomain(" + name + ")");
+function pdCheckDomain(name, type, context) {
+	pdLogger.debug("checkDomain(" + name + ")");
 	// check full hostname (subdomain+.domain)
-	if (checkForIndicator(name, type + "_hostname", context)) {
+	if (pdCheckForIndicator(name, type + "_hostname", context)) {
 		return true
 	}
 	// check effective top-level domain
@@ -170,30 +170,30 @@ function checkDomain(name, type, context) {
 	if (tld == name) {
 		return false;
 	}
-	return checkForIndicator(tld, type + "_domain", context);
+	return pdCheckForIndicator(tld, type + "_domain", context);
 }
 
 // check email address
-function checkEmailAddress(addr, type, context) {
+function pdCheckEmailAddress(addr, type, context) {
 	// check if addr is a list of addresses
 	if (Array.isArray(addr)) {
 		let rc = false;
 		for (let i = 0; i < addr.length; i++) {
-			rc |= checkEmailAddress(addr[i], type, context);
+			rc |= pdCheckEmailAddress(addr[i], type, context);
 		}
 		return rc;
 	}
-	logger.debug("checkEmailAddress(" + addr + ")");
+	pdLogger.debug("checkEmailAddress(" + addr + ")");
 	// normalize email address
 	var reg = new RegExp("<([^>]*)", "gim");
 	var result;
 	while ((result = reg.exec(addr)) !== null) {
 		addr = result[1];
 	}
-	logger.debug("=> " + addr);
+	pdLogger.debug("=> " + addr);
 
 	// check if email address is an indicator.
-	if (checkForIndicator(addr, type, context)) {
+	if (pdCheckForIndicator(addr, type, context)) {
 		return true;
 	}
 	// check email domain
@@ -201,37 +201,37 @@ function checkEmailAddress(addr, type, context) {
 	try {
 		domain = addr.split("@")[1];
 	} catch(error) {
-		logger.error("email addr failed: " + addr);
+		pdLogger.error("email addr failed: " + addr);
 	}
-	return checkDomain(domain, type, context);
+	return pdCheckDomain(domain, type, context);
 }
 
 // check mail hops
-function checkMailHop(hop, context) {
-	logger.debug("checkMailHop(" + hop + ")");
+function pdCheckMailHop(hop, context) {
+	pdLogger.debug("checkMailHop(" + hop + ")");
 	return false;
 }
 
 // check link
-function checkLink(link, type, context) {
-	logger.debug("checkLink(" + link + ")");
+function pdCheckLink(link, type, context) {
+	pdLogger.debug("checkLink(" + link + ")");
 	// check for email link
 	if (link.startsWith("mailto:")) {
 		return {
-			status: checkEmailAddress(link.substring(7), type + "_mailto", context),
+			status: pdCheckEmailAddress(link.substring(7), type + "_mailto", context),
 			mode: "email"
 		}
 	}	
 	// check domain
 	var url = new URL(link);
 	return {
-		status: checkDomain(url.hostname, type, context),
+		status: pdCheckDomain(url.hostname, type, context),
 		mode: "link"
 	}
 }
 
 // check MIME part of the email
-function checkMIMEPart(part, rc, skip, context) {
+function pdCheckMIMEPart(part, rc, skip, context) {
 	// find MIME part to scan
 	var usePart = null;
 	var bodyType = null;
@@ -261,26 +261,26 @@ function checkMIMEPart(part, rc, skip, context) {
 		case "multipart/mixed":
 			// process all parts
 			for (let i = 0; i < part.parts.length; i++) {
-				checkMIMEPart(part.parts[i], rc, true, context);
+				pdCheckMIMEPart(part.parts[i], rc, true, context);
 			}
 			return;
 		default:
-			logger.log("Skipped MIME type: " + part.contentType);
+			pdLogger.log("Skipped MIME type: " + part.contentType);
 			for (let i = 0; i < part.parts.length; i++) {
-				logger.log("==> " + part.parts[i].contentType);
+				pdLogger.log("==> " + part.parts[i].contentType);
 			}
 			break;
 	}
 	if (usePart === null || usePart.body === null || bodyType === null) {
 		if (!skip) {
-			logger.error("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
+			pdLogger.error("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
 		}
 		return;
 	}
 	
 	// shared code to process links
 	var processLink = function(link,rc) {
-		var res = checkLink(link, "email_link", context);
+		var res = pdCheckLink(link, "email_link", context);
 		switch (res.mode) {
 		case "email":
 			rc.totalEmail++;
@@ -296,7 +296,7 @@ function checkMIMEPart(part, rc, skip, context) {
 			break;
 		}
 	}
-	logger.debug("checkMIMEPart() body=" + usePart.body);
+	pdLogger.debug("checkMIMEPart() body=" + usePart.body);
 	var reg, result;
 	if (bodyType == "text/html") {
 		// scan HTML content for links
@@ -319,22 +319,22 @@ function checkMIMEPart(part, rc, skip, context) {
  *****************************************************************************/
 
 // process a MIME message object
-function inspectEMail(email) {
-	logger.debug("inspectEMail(): " + email.headers.from);
+function pdInspectEMail(email) {
+	pdLogger.debug("inspectEMail(): " + email.headers.from);
 	var context = "From " + email.headers.from + " (" + email.headers.date + ")";
 	var list = [];
 
 	// check sender(s) of email
-	logger.debug(JSON.stringify(email.headers));
+	pdLogger.debug(JSON.stringify(email.headers));
 	var count = 0;
 	var total = 1;
-	if (checkEmailAddress(email.headers.from, "email_from", context)) {
+	if (pdCheckEmailAddress(email.headers.from, "email_from", context)) {
 		count++;
 	}
 	if (email.headers.sender !== undefined) {
 		total += email.headers.sender.length; 
 		email.headers.sender.forEach(sender => {
-			if (checkEmailAddress(sender, "email_sender", context)) {
+			if (pdCheckEmailAddress(sender, "email_sender", context)) {
 				count++;
 			}
 		});
@@ -348,14 +348,14 @@ function inspectEMail(email) {
 	total = 0;
 	if (email.headers["reply-to"] !== undefined) {
 		total = 1;
-		if (checkEmailAddress(email.headers["reply-to"], "email_replyto", context)) {
+		if (pdCheckEmailAddress(email.headers["reply-to"], "email_replyto", context)) {
 			count++;
 		}
 	}
 	if (email.headers["return-path"] !== undefined) {
 		total += email.headers["return-path"].length;
 		email.headers["return-path"].forEach(replyTo => {
-			if (checkEmailAddress(replyTo, "email_return", context)) {
+			if (pdCheckEmailAddress(replyTo, "email_return", context)) {
 				count++;
 			}
 		});
@@ -370,7 +370,7 @@ function inspectEMail(email) {
 	if (email.headers.received !== undefined) {
 		total += email.headers.received.length;
 		email.headers.received.forEach(hop => {
-			if (checkMailHop(hop, context)) {
+			if (pdCheckMailHop(hop, context)) {
 				count++;
 			}
 		});
@@ -378,7 +378,7 @@ function inspectEMail(email) {
 	if (email.headers["x-received"] !== undefined) {
 		total += email.headers["x-received"].length;
 		email.headers["x-received"].forEach(hop => {
-			if (checkMailHop(hop, context)) {
+			if (pdCheckMailHop(hop, context)) {
 				count++;
 			}
 		});
@@ -391,7 +391,7 @@ function inspectEMail(email) {
 	// inspect MIME parts
 	var rc = { countLinks: 0, totalLinks: 0, countEmail: 0, totalEmail: 0 }
 	email.parts.forEach(part => {
-		checkMIMEPart(part, rc, false, context);
+		pdCheckMIMEPart(part, rc, false, context);
 	});
 	if (rc.countLinks > 0) {
 		list.push("Links (" + rc.countLinks + "/" + rc.totalLinks + ")");
@@ -401,8 +401,8 @@ function inspectEMail(email) {
 	}
 	
 	// TEST mode:
-	if (getPrefBool("test") && list.length == 0) {
-		let rate = getPrefInt("test_rate") / 100;
+	if (pdGetPrefBool("test") && list.length == 0) {
+		let rate = pdGetPrefInt("test_rate") / 100;
 		if (Math.random() < rate) {
 			list.push("DEMO modus -- not based on detection!");
 		}
