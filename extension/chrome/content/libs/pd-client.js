@@ -38,6 +38,8 @@ var pdDlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.ns
 var pdLogger = {
 	log: function(msg) { console.log("PhishDetect: " + msg); },
 	error: function(msg) { console.log("PhishDetect: " + msg); },
+	warn: function(msg) { console.warn("PhishDetect: " + msg); },
+	info: function(msg) { console.info("PhishDetect: " + msg); },
 	debug: function(msg) {
 		if (pdGetPrefBool('debug')) {
 			console.debug("PhishDetect: " + msg);
@@ -81,7 +83,18 @@ function pdSendRequest(uri, method, req) {
 	};
 	if (req !== null) {
 		prop.body = req;
-		prop.headers = { "Content-Type": "application/json" };
+		pdLogger.debug("sendRequest(): request type = " + (typeof req));
+		switch (typeof req) {
+		case 'FormData':
+			// prop.headers = { "Content-Type": "multipart/form-data" };
+			if (method != "POST") {
+				prop.method = "POST";
+				pdLogger.warn("Request type changed to POST");
+			}
+			break;
+		default:
+			prop.headers = { "Content-Type": "application/json" };
+		}
 	}
 	var url = pdGetPrefString("node_url") + uri;
 	return fetch(url, prop);
@@ -151,6 +164,110 @@ function pdCheckForIndicator(raw, type, context) {
 		return true;
 	}
 	return false;
+}
+
+
+/*****************************************************************************
+ * Incident report related functions
+ *****************************************************************************/
+
+//list of incident types in reports
+const pdIncidentType = [ "Test", "Domain", "Email" ];
+
+// send a report of pending incidents
+function pdSendReport(pending, withContext, asHashed, final) {
+	// get pending incidents if not an argument
+	if (pending === null) {
+		pending = pdDatabase.getIncidents(true);
+	}
+	// get report settings
+	var user = pdGetPrefString('reports_contact');
+	var withTest = pdGetPrefBool('test') && getPrefBool('test_report');
+	
+	// send all incidents and flag them reported in database
+	var tasks = [];
+	for (let i = 0; i < pending.length; i++) {
+		let incident = pending[i];
+		// flag incident as "in transit"
+		pdDatabase.setReported(pending[i].id, -1);
+		
+		// filter test incidents.
+		if (incident.kind == 0 && !withTest) {
+			continue;
+		}
+		// prepare report
+		let indicator = incident.raw;
+		if (asHashed) {
+			indicator = incident.indicator;
+		}
+		// send incident report
+		// TODO: missing context passing
+		tasks.push(
+			pdSendEvent(
+				incidentType[incident.kind], incident.type, indicator,
+				asHashed, user, incident.id
+			)
+		);
+	}
+	// record last report date
+	if (tasks.length > 0) {
+		pdPrefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
+	}
+	// wait for all requests to finish.
+	var failed = false;
+	Promise.all(tasks)
+		.then(responses => Promise.all(responses.map(r => r.json())))
+		.then(values => {
+			for (let i = 0; i < values.length; i++) {
+				// convert response to JSON
+				var rc = values[i];
+				
+				// check for errors
+				if (rc.error !== undefined) {
+					pdLogger.error('Report on incident #' + pending[i].id + ' failed.');
+					if (!failed) {
+						failed = true;
+						pdDlgPrompt.alert(null, "Incident Report",
+							"Sending an incident report to the back-end node failed:\n\n" +
+							rc.error + "\n\n" +
+							"Make sure you are connected to the internet. If the problem "+
+							"persists, contact your node operator.");
+					}
+					// flag incident as "pending"
+					pdDatabase.setReported(pending[i].id, 0);
+					continue;
+				}
+				// flag incident as reported in database
+				pdLogger.log("Incident #" + pending[i].id + " reported.");
+				pdDatabase.setReported(pending[i].id, 1);
+			}
+		}, error => {
+			// error occurred
+			pdLogger.error("sendReport(): " + error);
+		})
+		.then(() => {
+			// callback on completion
+			if (final !== null) {
+				final();
+			}
+		});
+}
+
+// send a notification about a detected indicator
+// @returns {Promise}
+function pdSendEvent(kind, type, indicator, hashed, user, id) {
+	// assemble report
+	var report = JSON.stringify({
+		// "kind": kind,
+		"type": type,
+		"indicator": indicator,
+		"hashed": ""+hashed,
+		"target_contact": user
+	});
+	pdLogger.debug("Report: " + report);
+
+	// send to PhishDetect node
+	return pdSendRequest("/api/events/add/", "POST", report);
 }
 
 

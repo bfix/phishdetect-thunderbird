@@ -94,7 +94,7 @@ var pdDatabase = {
 		}
 		finally {
 			if (stmt !== null) {
-				logger.log("recordIncident(" + id + ",'" + context + "')");
+				pdLogger.log("recordIncident(" + id + ",'" + context + "')");
 				stmt.reset();
 			}
 		}

@@ -1,0 +1,15 @@
+
+#pd-check-url-value {
+	font-weight: bold;
+	color: blue;
+}
+
+#pd-check-canvas {
+	background-color: white;	
+	margin: 0.2em;
+	padding: 0.4em;
+}
+
+#pd-check-result-warnings {
+	margin-top: 0.5em;
+}

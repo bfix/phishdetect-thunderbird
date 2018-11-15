@@ -30,12 +30,14 @@ function pdMailViewContext(event) {
 	// assemble context menu depending on the object
 	pdContextNode = event.target;
 	document.getElementById("pd-context-link").collapsed = true;
-	switch (event.target.localName.toUpperCase()) {
+	var name = event.target.localName.toUpperCase();
+	switch (name) {
 	case 'A':
 		pdLogger.log("Context on link in email: " + pdContextNode);
 		document.getElementById("pd-context-link").collapsed = false;
 		break;
 	default:
+		pdLogger.debug("Context on " + name + " unhandled");
 	    // event.preventDefault();
 	}
 }
@@ -47,7 +49,14 @@ function pdContextCheckLink(event) {
 		return;
 	}
 	// show check dialog
-	toOpenWindowByType('phishdetect:check', 'chrome://phishdetect/content/pd-check.xul');
+	window.openDialog(
+		'chrome://phishdetect/content/pd-check.xul',
+		'pd-dlg-checkurl',
+		'chrome,centerscreen,titlebar',
+		{
+			url: pdContextNode.getAttribute('href')
+		}
+	); 
 	pdStatusMsg("Checking URL...");
 }
 
