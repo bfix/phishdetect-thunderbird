@@ -13,3 +13,8 @@
 #pd-check-result-warnings {
 	margin-top: 0.5em;
 }
+
+listheader {
+	color: red;
+	font-weight: bold;
+}
