@@ -6,15 +6,36 @@
 
 #pd-check-canvas {
 	background-color: white;	
-	margin: 0.2em;
-	padding: 0.4em;
+	margin: 0.3em;
+	padding: 0.6em;
 }
 
-#pd-check-result-warnings {
-	margin-top: 0.5em;
+#pd-check-result-warnings, #pd-check-result-dange {
+	margin-top: 1em;
+}
+
+#pd-check-brand-name {
+	color: green;	
+}
+
+#pd-check-whitelisted {
+	background-color: #e1ffd9;
 }
 
 listheader {
 	color: red;
 	font-weight: bold;
+}
+
+listcell {
+	background-color: #ffd7d7;
+}
+
+.pd-bold {
+	font-weight: bold;
+	font-style: italic;
+}
+
+.pd-big2 {
+	font-size: 200%;
 }

@@ -11,27 +11,66 @@
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/pd-check.js"/> 
 
-	<hbox flex="1">
-		<vbox id="pd-check-canvas" flex="1">
-			<hbox id="pd-check-url" align="center">
-				<description value="URL to check:"/>
-				<description id="pd-check-url-value"/>
-			</hbox>
-			<hbox id="pd-check-spinner" align="center" collapsed="true">
-				<description value="Checking URL -- this may take a while..."/>
-				<image src="chrome://phishdetect/content/spinner.gif" width="32"/>
-			</hbox>
-			<groupbox id="pd-check-result" orient="vertical" collapsed="true">
-				<caption>Check result:</caption>
-				<hbox align="center">
-					<checkbox id="pd-check-result-white" label="Whitelisted," readonly="true"/>
-					<label control="pd-check-result-brand" value="Brand:"/>
-					<textbox id="pd-check-result-brand" value="" readonly="true"/>
-					<label control="pd-check-result-score" value=", Score:"/>
-					<textbox id="pd-check-result-score" value="" width="50" readonly="true"/>
+	<vbox flex="1">
+		<hbox align="center">
+			<description value="URL check:"/>
+			<description id="pd-check-url-value"/>
+		</hbox>
+		<deck id="pd-check-canvas" selectedIndex="0" flex="1">
+		
+			<!-- [0] Run scan -->
+			<vbox flex="1">
+				<hbox align="center" flex="1">
+					<spacer flex="1"/>
+					<description value="PhishDetect is analyzing the website -- this may take a while..."/>
+					<spacer flex="1"/>
+					<image src="chrome://phishdetect/content/spinner.gif" width="32"/>
+					<spacer flex="1"/>
 				</hbox>
-				
-				<listbox id="pd-check-result-warnings" flex="1">
+			</vbox>
+			
+			<!-- [1] Show result OK -->
+			<vbox flex="1">
+				<hbox align="center" flex="1">
+					<image src="chrome://phishdetect/content/approve.png" width="64" height="64"/>
+					<spacer flex="1"/>
+					<vbox>
+						<description class="pd-bold pd-big2">No obvious problems detected.</description>
+					</vbox>
+				</hbox>
+				<spacer minheight="10" flex="1"/>
+				<hbox id="pd-check-whitelisted" align="center">
+					<description>
+						The domain the link leads to is whitelisted! It appears to be a
+						legitimate site owned by
+					</description>
+					<description id="pd-check-brand-name2"/>
+				</hbox>
+				<spacer minheight="10" flex="1"/>
+				<description>
+					No suspicious elements have been found in this page. This does not
+					guarantee that the page is completely safe (for example, it might
+					evade our detection or identify our service and redirect instead
+					to a legitimate page), please always be cautious.
+				</description>
+			</vbox>
+			
+			<!-- [2] Show result WARNING -->
+			<vbox flex="1">
+				<hbox align="center" flex="1">
+					<image src="chrome://phishdetect/content/warning.png" width="64" height="64"/>
+					<spacer flex="1"/>
+					<vbox>
+						<description class="pd-bold pd-big2">Problems detected.</description>
+					</vbox>
+				</hbox>
+				<spacer minheight="10" flex="1"/>
+				<description>
+					This website has suspicious properties. This is could be a phishing site,
+					but we couldn't determine more conclusively. Please proceed with caution.				
+				</description>
+				<spacer minheight="10" flex="1"/>
+				<listbox id="pd-check-result-warnings" rows="6" flex="1">
 					<listhead>
 						<listheader label="Warnings:"/>
 					</listhead>
@@ -39,7 +78,36 @@
 						<listcol flex="1"/>
 					</listcols>
 				</listbox>
-			</groupbox>
-		</vbox>
-	</hbox>
+			</vbox>
+			
+			<!-- [3] Show result DANGER -->
+			<vbox flex="1">
+				<hbox align="center" flex="1">
+					<image src="chrome://phishdetect/content/danger.png" width="64" height="64"/>
+					<spacer flex="1"/>
+					<vbox>
+						<description class="pd-bold pd-big2">Serious problems detected!</description>
+					</vbox>
+				</hbox>
+				<spacer minheight="10" flex="1"/>
+				<description>
+					This website has very suspicious properties and is highly likely a
+					phishing site. We recommend to not proceed to this page.				
+				</description>
+				<hbox id="pd-check-brand" align="center" flex="1" collapsed="true">
+					<description>This website is impersonating the following brand:</description>
+					<description id="pd-check-brand-name"/>
+				</hbox>
+				<spacer minheight="10" flex="1"/>
+				<listbox id="pd-check-result-danger" rows="6" flex="1">
+					<listhead>
+						<listheader label="Warnings:"/>
+					</listhead>
+					<listcols>
+						<listcol flex="1"/>
+					</listcols>
+				</listbox>
+			</vbox>
+		</deck>
+	</vbox>
 </dialog>

@@ -27,8 +27,10 @@ function pdCheckOnLoad(event) {
 		dispURL = url.substr(0,80) + "...";
 	}
 	document.getElementById("pd-check-url-value").value = dispURL;
-	document.getElementById("pd-check-spinner").collapsed = false;
-	document.getElementById("pd-check-result").collapsed = true;
+	
+	// handle decks
+	var deck = document.getElementById("pd-check-canvas");
+	deck.selectedIndex = 0;
 
 	// send request to PhishDetect node
 	// assemble new form data instance
@@ -39,29 +41,45 @@ function pdCheckOnLoad(event) {
 	pdSendRequest("/api/analyze/link/", "POST", request)
 		.then(response => response.json())
 		.then(result => {
-			// switch visible elements.
-			document.getElementById("pd-check-spinner").collapsed = true;
-			document.getElementById("pd-check-result").collapsed = false;
-			
-			// show results
-			document.getElementById("pd-check-result-white").checked = result.whitelisted;
-			document.getElementById("pd-check-result-brand").value = result.brand;
-			document.getElementById("pd-check-result-score").value = result.score;
-			
-			let list = document.getElementById("pd-check-result-warnings");
-			let addEntry = function(entry) {
-				let row = document.createElement('listitem');
-			    let cell = document.createElement('listcell');
-			    cell.setAttribute('label', entry);
-			    row.appendChild(cell);
-			    list.appendChild(row);				
-			}
-			if (result.warnings !== null && result.warnings.length > 0) {
-				for (let i = 0; i < result.warnings.length; i++) {
-					addEntry(result.warnings[i]);
+			// evaluate result
+			var list = null;
+			if (result.whitelisted || result.score == 0  || result.warnings === null || result.warnings.length == 0) {
+				// switch to "All good" card
+				deck.selectedIndex = 1;
+				document.getElementById("pd-check-whitelisted").collapsed = !result.whitelisted;
+				document.getElementById("pd-check-brand-name2").value =
+					(result.brand.length > 0 ? result.brand : "the correct entity.");
+			} else if (result.score > 50) {
+				// switch to danger
+				deck.selectedIndex = 3;
+				list = document.getElementById("pd-check-result-danger");
+				// check for brand impersonation
+				document.getElementById("pd-check-brand").collapsed = true;
+				if (result.brand !== null && result,brand.length > 0) {
+					document.getElementById("pd-check-brand").collapsed = false;
+					document.getElementById("pd-check-brand-name").value = result.brand;
 				}
 			} else {
-				addEntry('None');
+				// switch to warning
+				deck.selectedIndex = 2;
+				list = document.getElementById("pd-check-result-warnings");
+			}
+			if (list != null) {
+				// helper function to add list entries
+				let addEntry = function(entry) {
+					let row = document.createElement('listitem');
+				    let cell = document.createElement('listcell');
+				    cell.setAttribute('label', entry);
+				    row.appendChild(cell);
+				    list.appendChild(row);				
+				}
+				if (result.warnings !== null && result.warnings.length > 0) {
+					for (let i = 0; i < result.warnings.length; i++) {
+						addEntry(result.warnings[i]);
+					}
+				} else {
+					addEntry('None');
+				}
 			}
 		});
 }

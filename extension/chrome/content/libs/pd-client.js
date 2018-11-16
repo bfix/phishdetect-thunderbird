@@ -182,7 +182,7 @@ function pdSendReport(pending, withContext, asHashed, final) {
 	}
 	// get report settings
 	var user = pdGetPrefString('reports_contact');
-	var withTest = pdGetPrefBool('test') && getPrefBool('test_report');
+	var withTest = pdGetPrefBool('test') && pdGetPrefBool('test_report');
 	
 	// send all incidents and flag them reported in database
 	var tasks = [];
