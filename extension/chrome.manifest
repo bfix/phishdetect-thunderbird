@@ -4,5 +4,6 @@ content phishdetect chrome/content/
 skin    phishdetect default chrome/skin/default/
 
 overlay chrome://messenger/content/messenger.xul         chrome://phishdetect/content/pd-column.xul
+overlay chrome://messenger/content/messenger.xul         chrome://phishdetect/content/pd-toolbar.xul
 overlay chrome://messenger/content/mailWindowOverlay.xul chrome://phishdetect/content/pd-context.xul
 overlay chrome://messenger/content/mailWindowOverlay.xul chrome://phishdetect/content/pd-view.xul

@@ -12,12 +12,7 @@
 		</menu>
 	</popup>
 	<menupopup id="folderPaneContext">
-		<menu id="pd-context-folder" class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="PhishDetect">
-			<menupopup>
-				<menuitem label="Scan emails in folder" oncommand="pdScanFolder();"/>
-				<menuitem label="Sync with node" oncommand="pdFetchIndicators();"/>
-				<menuitem label="Reporting..." oncommand="pdManageReport();"/>
-			</menupopup>
-		</menu>
+		<menuitem id="pd-context-folder" class="menuitem-iconic" image="chrome://phishdetect/content/icon16.png"
+			label="Scan emails in folder" oncommand="pdScanFolder();"/>
 	</menupopup>
 </overlay>

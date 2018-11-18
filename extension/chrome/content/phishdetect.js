@@ -212,6 +212,35 @@ function pdStatusMsg(msg) {
  * Task scheduler
  *****************************************************************************/
 
+// sync indicator list with back-end node
+function pdSyncWithNode() {
+	// get latest indicators
+	pdStatusMsg("Fetching indicators...");
+	pdFetchIndicators(function(rc, msg){
+		var out = "";
+		switch (rc) {
+			case -1:
+				out = "Database error -- " + msg;
+				break;
+			case 1:
+				out = (msg == "DONE" ? "Fetched indicators." : "Fetch cancelled.");
+				break;
+		}
+		if (out.length > 0) {
+			pdStatusMsg(out);
+			pdLogger.log(out);
+		}
+	});
+}
+
+// get timestamp of last sync
+function pdGetLastSync() {
+	var v = pdGetPrefInt('reports_sync_last');
+	var msg = "---";
+	if (v > 0) msg = new Date(v*1000).toString();
+	return msg;
+}
+
 // taskScheduler is called periodically to check for pending syncs
 function pdTaskScheduler() {
 	var now = Date.now() / 1000;
@@ -230,22 +259,7 @@ function pdTaskScheduler() {
 	// check for pending node sync
 	if (nodeSyncInterval > 0 && now > (lastNodeSync + nodeSyncInterval)) {
 		// get latest indicators
-		pdStatusMsg("Fetching indicators...");
-		pdFetchIndicators(function(rc, msg){
-			var out = "";
-			switch (rc) {
-				case -1:
-					out = "Database error -- " + msg;
-					break;
-				case 1:
-					out = (msg == "DONE" ? "Fetched indicators." : "Fetch cancelled.");
-					break;
-			}
-			if (out.length > 0) {
-				pdStatusMsg(out);
-				pdLogger.log(out);
-			}
-		});
+		pdSyncWithNode();
 	}
 	
 	// check for pending node sync

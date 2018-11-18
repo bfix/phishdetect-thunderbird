@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://phishdetect/skin/pd-toolbar.css" type="text/css" ?>
+
+<!DOCTYPE overlay >
+<overlay id="pd-toolbar" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+	<script type="text/javascript" src="chrome://phishdetect/content/pd-toolbar.js" />
+
+	<popupset>
+		<tooltip id="pd-toolbar-sync-tt" onpopupshowing="this.lastChild.value = 'Last sync: ' + pdGetLastSync();">
+			<label value="Last sync: ---"/>
+		</tooltip>
+	</popupset>
+
+	<toolbarpalette id="MailToolbarPalette">
+		<toolbarbutton id="pd-toolbar-menu" label="PhishDetect" type="menu">
+			<menupopup>
+				<menuitem id="pd-toolbar-sync" label="Sync with node" tooltip="pd-toolbar-sync-tt" oncommand="pdSyncWithNode();"/>
+				<menuitem label="Reporting..." oncommand="pdManageReport();"/>
+			</menupopup>
+		</toolbarbutton>			
+	</toolbarpalette>
+</overlay>
