@@ -236,17 +236,13 @@ function pdSyncWithNode() {
 // get timestamp of last node sync
 function pdGetLastSync() {
 	var v = pdGetPrefInt('node_sync_last');
-	var msg = "---";
-	if (v > 0) msg = new Date(v*1000).toString();
-	return msg;
+	return pdGetElapsedTime(v);
 }
 
 //get timestamp of last report
 function pdGetLastReport() {
 	var v = pdGetPrefInt('reports_sync_last');
-	var msg = "---";
-	if (v > 0) msg = new Date(v*1000).toString();
-	return msg;
+	return pdGetElapsedTime(v);
 }
 
 // taskScheduler is called periodically to check for pending syncs

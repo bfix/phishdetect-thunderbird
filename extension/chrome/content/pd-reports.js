@@ -33,8 +33,7 @@ function pdReportsOnLoad() {
 
 	// set date of last reporting
 	var v = pdGetPrefInt('reports_sync_last');
-	var msg = "---";
-	if (v > 0) msg = new Date(v*1000).toString();
+	var msg = pdGetElapsedTime(v);
 	document.getElementById("pd-dlg-reports-last").value = msg; 
 
 	// get unreported incidents
@@ -59,7 +58,7 @@ function pdReportsOnLoad() {
 						return ts.toLocaleDateString() + " " + ts.toLocaleTimeString();
 					}
 					case 'indicator': return pdReportsPending[row].raw;
-					case 'context': return pdReportsPending[row].context;
+					case 'context': return pdReportsPending[row].context.label;
 				}
 			},
 			setTree: function(treebox){ this.treebox = treebox; },

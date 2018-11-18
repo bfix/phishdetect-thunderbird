@@ -25,24 +25,17 @@ var pdPrefsPane = {
 	init: function() {
 		// set time of last node sync
 		var v = document.getElementById('pd-pref-node-sync-last-value').value;
-		var msg = "(no sync yet)";
-		if (v > 0) {
-			let ts = new Date(v * 1000);
-			msg = ts.toLocaleDateString() + " " + ts.toLocaleTimeString();
-		}
+		var msg = pdGetElapsedTime(v);
 		document.getElementById('pd-pref-node-sync-last').value = msg;
 
 		// set time of last report sync
 		v = document.getElementById('pd-pref-reports-sync-last-value').value;
-		msg = "(no reports yet)";
-		if (v > 0) {
-			let ts = new Date(v * 1000);
-			msg = ts.toLocaleDateString() + " " + ts.toLocaleTimeString();
-		}
+		msg = pdGetElapsedTime(v);
 		document.getElementById('pd-pref-reports-sync-last').value = msg;
 		
 		// run updaters
 		this.update_reports();
+		this.update_test();
 	},
 
 	// validate all fields and block exit if invalid fields are encountered

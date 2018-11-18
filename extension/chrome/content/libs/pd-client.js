@@ -537,6 +537,39 @@ function pdInspectEMail(email) {
 	}
 }
 
+
+/*****************************************************************************
+ * Utilities
+ *****************************************************************************/
+
+// stringify elapsed time since 'v'
+function pdGetElapsedTime(v) {
+	const ELAPSED_TIME = [
+		{ label: "month", v: 2592000 },
+		{ label: "days", v: 86400 },
+		{ label: "hours", v: 3600 },
+		{ label: "mins", v: 60 }
+	];
+	var msg = "---";
+	if (v > 0) {
+		let ts = new Date(v*1000);
+		let elapsed = Math.floor((Date.now() - ts.getTime()) / 1000);
+		let elapsedMsg = elapsed + " secs";
+		for (let i = 0; i < ELAPSED_TIME.length; i++) {
+			let c = Math.floor(elapsed / ELAPSED_TIME[i].v);
+			if (c > 0) {
+				elapsedMsg = c + " " + ELAPSED_TIME[i].label;
+				break;
+			}
+		}
+		msg = "More than " + elapsedMsg + " ago (" +
+			ts.toLocaleDateString() + " " +
+			ts.toLocaleTimeString() + ")";
+	}
+	return msg;
+}
+
+
 /*****************************************************************************
  * Encoding helpers
  *****************************************************************************/

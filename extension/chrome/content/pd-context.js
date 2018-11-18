@@ -77,7 +77,7 @@ function pdManageReport() {
 	}
 }
 
-//check if the selected entry in the folder pane is a mail folder
+//check if the selected entry in the folder pane is a (non-empty) mail folder
 function pdIsMailFolder() {
 	var selFolders = gFolderTreeView.getSelectedFolders();
 	if (selFolders.length != 1) {
