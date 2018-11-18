@@ -204,7 +204,7 @@ function pdSendReport(pending, withContext, asHashed, final) {
 		// TODO: missing context passing
 		tasks.push(
 			pdSendEvent(
-				incidentType[incident.kind], incident.type, indicator,
+				pdIncidentType[incident.kind], incident.type, indicator,
 				asHashed, user, incident.id
 			)
 		);
