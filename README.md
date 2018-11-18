@@ -141,7 +141,7 @@ Click on the Mail tab toolbar and select "Customize...". Drag the PhishDetect
 item from the list onto the toolbar at your preferred position. Your toolbar
 will now look like this:
 
-![PhishDetect Toolbar screenshot](https://github.com/bfix/phishdetect-thunderbird/docs/img/pd-toolbar.png "PhishDetect Toolbar")
+![PhishDetect Toolbar screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/master/docs/img/pd-toolbar.png "PhishDetect Toolbar")
 
 #### PhishDetect flag in email list
 
@@ -149,4 +149,4 @@ You can add a PhishDetect column to the email list. Select the "columns
 display" icon and activate "PhishDetect". The column will appear and you can
 drag it to any position you prefer; the result will look like this:
 
-![PhishDetect column screenshot](https://github.com/bfix/phishdetect-thunderbird/docs/img/pd-cokumn.png "PhishDetect Column")
+![PhishDetect column screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/master/docs/img/pd-cokumn.png "PhishDetect Column")
