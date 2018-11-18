@@ -59,7 +59,7 @@ function pdScanEmail() {
 		pdStatusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
 		// check for auto-send report
 		if (pdGetPrefInt('reports_sync') == -1) {
-			pdSendReport(null, pdGetPrefBool('reports_context'), pdGetPrefBool('reports_hashed'), null);
+			pdSendReport(null, pdGetPrefBool('reports_context'), null);
 		}
 		// TODO: update rendering of message
 	});
@@ -90,7 +90,7 @@ function pdScanFolder() {
 			flagged++;
 			// check for auto-send report
 			if (pdGetPrefInt('reports_sync') == -1) {
-				pdSendReport(null, pdGetPrefBool('reports_context'), pdGetPrefBool('reports_hashed'), null);
+				pdSendReport(null, pdGetPrefBool('reports_context'), null);
 			}
 		}
 		// status feedback
@@ -137,7 +137,7 @@ var pdNewMailListener = {
 				aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 				// check for auto-send report
 				if (aRC.phish && pdGetPrefInt('reports_sync') == -1) {
-					pdSendReport(null, pdGetPrefBool('reports_context'), pdGetPrefBool('reports_hashed'), null);
+					pdSendReport(null, pdGetPrefBool('reports_context'), null);
 				}
 			});
 		}
@@ -266,7 +266,7 @@ function pdTaskScheduler() {
 	if (reportSyncInterval > 0 && now > (lastReportSync + reportSyncInterval)) {
 		// send pending incidents
 		pdStatusMsg("Sending pending incident reports...");
-		pdSendReport(null, pdGetPrefBool('reports_context'), pdGetPrefBool('reports_hashed'), null);
+		pdSendReport(null, pdGetPrefBool('reports_context'), null);
 		let msg = "Pending incident reports sent.";
 		pdStatusMsg(msg);
 		pdLogger.log(msg);

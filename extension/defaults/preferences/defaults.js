@@ -5,7 +5,6 @@ pref("extensions.phishdetect.node_sync_last", 0);
 pref("extensions.phishdetect.reports", false);
 pref("extensions.phishdetect.reports_sync", -1);
 pref("extensions.phishdetect.reports_sync_last", 0);
-pref("extensions.phishdetect.reports_hashed", false);
 pref("extensions.phishdetect.reports_context", true);
 pref("extensions.phishdetect.reports_contact", "anonymous");
 pref("extensions.phishdetect.test", true);

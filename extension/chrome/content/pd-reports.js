@@ -78,7 +78,6 @@ function pdReportsOnLoad() {
   
 	// set reporter (user identifier)
 	document.getElementById("pd-dlg-reports-user").value = pdGetPrefString('reports_contact'); 
-	document.getElementById("pd-dlg-reports-hashed").checked = pdGetPrefBool('reports_hashed'); 
 	document.getElementById("pd-dlg-reports-context").checked = pdGetPrefBool('reports_context'); 
 }
 
@@ -101,7 +100,6 @@ function pdReportsDlgSend() {
 	pdSendReport(
 		pdReportsPending,
 		document.getElementById("pd-dlg-reports-context").checked,
-		document.getElementById("pd-dlg-reports-hashed").checked,
 		() => {
 			// close dialog.
 			pdReportsSending = false;

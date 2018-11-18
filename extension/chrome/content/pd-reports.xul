@@ -38,7 +38,6 @@
 				<caption>
 					Report options:
 				</caption>
-				<checkbox id="pd-dlg-reports-hashed" label="Obfuscate report information" checked="false"/>
 				<checkbox id="pd-dlg-reports-context" label="Include context in report" checked="false"/>
 				<hbox align="center">
 					<description value="Reporter:"/>

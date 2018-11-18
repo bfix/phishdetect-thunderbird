@@ -79,22 +79,24 @@ var pdDatabase = {
 		var stmt = null;
 		try {
 			stmt = this.dbConn.createStatement(
-				"INSERT OR IGNORE INTO incidents(timestamp,raw,indicator,type,context) "+
-				"VALUES(:ts,:raw,:indicator,:type,:context)"
+				"INSERT OR IGNORE INTO incidents(timestamp,raw,indicator,type,context_id,context_label) "+
+				"VALUES(:ts,:raw,:indicator,:type,:ctxid,:ctxlabel)"
 			);
 			stmt.params.raw = raw;
 			stmt.params.ts = Date.now();
 			stmt.params.indicator = id;
 			stmt.params.type = type;
-			stmt.params.context = context;
+			stmt.params.ctxid = context.id;
+			stmt.params.ctxlabel = context.label;
 			stmt.executeStep();
 		}
 		catch(e) {
-			logger.error(e);
+			pdLogger.error(e);
+			stmt = null;
 		}
 		finally {
 			if (stmt !== null) {
-				pdLogger.log("recordIncident(" + id + ",'" + context + "')");
+				pdLogger.log("recordIncident(" + id + ",'" + context.id + "')");
 				stmt.reset();
 			}
 		}
@@ -110,7 +112,8 @@ var pdDatabase = {
 				"ind.indicator AS indicator," +
 				"inc.type AS type," +
 				"ind.kind AS kind," +
-				"inc.context AS context " +
+				"inc.context_id AS context_id, " +
+				"inc.context_label AS context_label " +
 			"FROM incidents inc,indicators ind "+
 			"WHERE inc.indicator = ind.id";
 		// restrict search for unreported incidents
@@ -129,7 +132,8 @@ var pdDatabase = {
 					indicator: stmt.row.indicator,
 					type: stmt.row.type,
 					kind: stmt.row.kind,
-					context: stmt.row.context
+					context_id: stmt.row.context_id,
+					context_label: stmt.row.context_label
 				});
 			}
 		}
@@ -168,15 +172,16 @@ var pdDatabase = {
 					
 				// TABLE incidents
 				incidents:
-					"id         INTEGER PRIMARY KEY,"+
-					"timestamp  INTEGER NOT NULL," +
-					"raw        VARCHAR(1024) NOT NULL," +
-					"indicator  INTEGER NOT NULL,"+
-					"type       VARCHAR(32) NOT NULL,"+
-					"context    VARCHAR(255) NOT NULL,"+
-					"reported   INTEGER DEFAULT 0,"+
+					"id            INTEGER PRIMARY KEY,"+
+					"timestamp     INTEGER NOT NULL," +
+					"raw           VARCHAR(1024) NOT NULL," +
+					"indicator     INTEGER NOT NULL,"+
+					"type          VARCHAR(32) NOT NULL,"+
+					"context_id    VARCHAR(255) NOT NULL,"+
+					"context_label VARCHAR(255) NOT NULL,"+
+					"reported      INTEGER DEFAULT 0,"+
 					"FOREIGN KEY(indicator) REFERENCES indicators(id),"+
-					"CONSTRAINT incident_unique UNIQUE(indicator,context)",
+					"CONSTRAINT incident_unique UNIQUE(indicator,context_id)",
 			}
 		};
 		

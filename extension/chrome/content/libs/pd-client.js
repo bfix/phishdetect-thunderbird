@@ -37,7 +37,7 @@ var pdDlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.ns
 
 var pdLogger = {
 	log: function(msg) { console.log("PhishDetect: " + msg); },
-	error: function(msg) { console.log("PhishDetect: " + msg); },
+	error: function(msg) { console.error("PhishDetect: " + msg); },
 	warn: function(msg) { console.warn("PhishDetect: " + msg); },
 	info: function(msg) { console.info("PhishDetect: " + msg); },
 	debug: function(msg) {
@@ -146,7 +146,7 @@ function pdFetchIndicators(callback) {
 // check if a string is contained in the list of indicators.
 // provide a context (string, max 255 chars) to identify where
 // the indicator was detected (URL, MessageID,...)
-function pdCheckForIndicator(raw, type, context) {
+function pdCheckForIndicator(full, raw, type, context) {
 	pdLogger.debug("==> checkForIndicator(" + raw + ")");
 	// create entry for lookup
 	var hash = sha256.create();
@@ -160,7 +160,8 @@ function pdCheckForIndicator(raw, type, context) {
 	var result = pdDatabase.hasIndicator(indicator);
 	for (let i = 0; i < result.length; i++) {
 		// record the incident
-		pdDatabase.recordIncident(raw, result[i].id, type, context);
+		pdLogger.debug("recordIncident: context=" + JSON.stringify(context));
+		pdDatabase.recordIncident(full, result[i].id, type, context);
 		return true;
 	}
 	return false;
@@ -175,7 +176,7 @@ function pdCheckForIndicator(raw, type, context) {
 const pdIncidentType = [ "Test", "Domain", "Email" ];
 
 // send a report of pending incidents
-function pdSendReport(pending, withContext, asHashed, final) {
+function pdSendReport(pending, withContext, final) {
 	// get pending incidents if not an argument
 	if (pending === null) {
 		pending = pdDatabase.getIncidents(true);
@@ -195,17 +196,12 @@ function pdSendReport(pending, withContext, asHashed, final) {
 		if (incident.kind == 0 && !withTest) {
 			continue;
 		}
-		// prepare report
-		let indicator = incident.raw;
-		if (asHashed) {
-			indicator = incident.indicator;
-		}
 		// send incident report
 		// TODO: missing context passing
 		tasks.push(
 			pdSendEvent(
-				pdIncidentType[incident.kind], incident.type, indicator,
-				asHashed, user, incident.id
+				pdIncidentType[incident.kind], incident.type, incident.raw,
+				incident.indicator, user, incident.id
 			)
 		);
 	}
@@ -276,10 +272,10 @@ function pdSendEvent(kind, type, indicator, hashed, user, id) {
  *****************************************************************************/
 
 // check domain
-function pdCheckDomain(name, type, context) {
+function pdCheckDomain(full, name, type, context) {
 	pdLogger.debug("checkDomain(" + name + ")");
 	// check full hostname (subdomain+.domain)
-	if (pdCheckForIndicator(name, type + "_hostname", context)) {
+	if (pdCheckForIndicator(full, name, type + "_hostname", context)) {
 		return true
 	}
 	// check effective top-level domain
@@ -287,7 +283,7 @@ function pdCheckDomain(name, type, context) {
 	if (tld == name) {
 		return false;
 	}
-	return pdCheckForIndicator(tld, type + "_domain", context);
+	return pdCheckForIndicator(full, tld, type + "_domain", context);
 }
 
 // check email address
@@ -310,7 +306,7 @@ function pdCheckEmailAddress(addr, type, context) {
 	pdLogger.debug("=> " + addr);
 
 	// check if email address is an indicator.
-	if (pdCheckForIndicator(addr, type, context)) {
+	if (pdCheckForIndicator(addr, addr, type, context)) {
 		return true;
 	}
 	// check email domain
@@ -320,7 +316,7 @@ function pdCheckEmailAddress(addr, type, context) {
 	} catch(error) {
 		pdLogger.error("email addr failed: " + addr);
 	}
-	return pdCheckDomain(domain, type, context);
+	return pdCheckDomain(addr, domain, type, context);
 }
 
 // check mail hops
@@ -342,7 +338,7 @@ function pdCheckLink(link, type, context) {
 	// check domain
 	var url = new URL(link);
 	return {
-		status: pdCheckDomain(url.hostname, type, context),
+		status: pdCheckDomain(link, url.hostname, type, context),
 		mode: "link"
 	}
 }
@@ -438,7 +434,15 @@ function pdCheckMIMEPart(part, rc, skip, context) {
 // process a MIME message object
 function pdInspectEMail(email) {
 	pdLogger.debug("inspectEMail(): " + email.headers.from);
-	var context = "From " + email.headers.from + " (" + email.headers.date + ")";
+	
+	// assemble a context object
+	var context = {
+		id: email.headers["message-id"][0],
+		label: "From " + email.headers.from + " (" + email.headers.date + ")"
+	};
+	pdLogger.debug("inspectEmail: context=" + JSON.stringify(context));
+
+	// compile a list of incidents
 	var list = [];
 
 	// check sender(s) of email
