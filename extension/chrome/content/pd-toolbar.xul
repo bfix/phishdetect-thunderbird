@@ -10,13 +10,16 @@
 		<tooltip id="pd-toolbar-sync-tt" onpopupshowing="this.lastChild.value = 'Last sync: ' + pdGetLastSync();">
 			<label value="Last sync: ---"/>
 		</tooltip>
+		<tooltip id="pd-toolbar-report-tt" onpopupshowing="this.lastChild.value = 'Last report: ' + pdGetLastReport();">
+			<label value="Last report: ---"/>
+		</tooltip>
 	</popupset>
 
 	<toolbarpalette id="MailToolbarPalette">
 		<toolbarbutton id="pd-toolbar-menu" label="PhishDetect" type="menu">
 			<menupopup>
-				<menuitem id="pd-toolbar-sync" label="Sync with node" tooltip="pd-toolbar-sync-tt" oncommand="pdSyncWithNode();"/>
-				<menuitem label="Reporting..." oncommand="pdManageReport();"/>
+				<menuitem label="Sync with node" tooltip="pd-toolbar-sync-tt" oncommand="pdSyncWithNode();"/>
+				<menuitem label="Reporting..." tooltip="pd-toolbar-report-tt" oncommand="pdManageReport();"/>
 			</menupopup>
 		</toolbarbutton>			
 	</toolbarpalette>
