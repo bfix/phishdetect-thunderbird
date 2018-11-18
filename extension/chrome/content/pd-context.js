@@ -77,3 +77,15 @@ function pdManageReport() {
 	}
 }
 
+//check if the selected entry in the folder pane is a mail folder
+function pdIsMailFolder() {
+	var selFolders = gFolderTreeView.getSelectedFolders();
+	if (selFolders.length != 1) {
+		return false;
+	}
+	var folder = selFolders[0];	
+	if (folder.getTotalMessages(false) == 0) {
+		return false;
+	}
+	return true;
+}
