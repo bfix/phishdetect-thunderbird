@@ -18,6 +18,8 @@
 			<menupopup>
 				<menuitem label="Sync with node" tooltip="pd-toolbar-sync-tt" oncommand="pdSyncWithNode();"/>
 				<menuitem label="Reporting..." tooltip="pd-toolbar-report-tt" oncommand="pdManageReport();"/>
+				<menuseparator />
+				<menuitem label="Preferences" oncommand="pdShowPreferences();"/>
 			</menupopup>
 		</toolbarbutton>			
 	</toolbarpalette>

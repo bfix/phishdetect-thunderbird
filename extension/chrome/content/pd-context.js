@@ -77,6 +77,12 @@ function pdManageReport() {
 	}
 }
 
+// show preferences dialog
+function pdShowPreferences() {
+	var features = "chrome,titlebar,toolbar,centerscreen,modal";
+	window.openDialog("chrome://phishdetect/content/pd-prefs.xul", "Preferences", features);
+}
+
 //check if the selected entry in the folder pane is a (non-empty) mail folder
 function pdIsMailFolder() {
 	var selFolders = gFolderTreeView.getSelectedFolders();
