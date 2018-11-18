@@ -27,18 +27,26 @@ var pdContextNode = null;
 
 // handle context menu popup
 function pdMailViewContext(event) {
+
+	// scan element (and parents) for an anchor node.
+	var scan = function(node) {
+		while (node !== null) {
+			// check node for anchor element.
+			pdLogger.debug("Scanning '" + node + " (" + node.localName + ")' for anchor node");
+			if (node.localName !== undefined && node.localName.toUpperCase() == 'A') {
+				pdLogger.debug("Found context node: " + node);
+				return node;
+			}
+			// walk up the HTML hierarchy
+			node = node.parentElement;
+		}
+		return null;
+	}
 	// assemble context menu depending on the object
-	pdContextNode = event.target;
 	document.getElementById("pd-context-link").collapsed = true;
-	var name = event.target.localName.toUpperCase();
-	switch (name) {
-	case 'A':
-		pdLogger.log("Context on link in email: " + pdContextNode);
+	pdContextNode = scan(event.target);
+	if (pdContextNode != null) {
 		document.getElementById("pd-context-link").collapsed = false;
-		break;
-	default:
-		pdLogger.debug("Context on " + name + " unhandled");
-	    // event.preventDefault();
 	}
 }
 
