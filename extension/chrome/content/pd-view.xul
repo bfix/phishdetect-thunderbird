@@ -4,7 +4,7 @@
 <overlay id="pd-view" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/sha256.js"/> 
-	<script type="text/javascript" src="chrome://phishdetect/content/libs/tld.js"/> 
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-tld.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-database.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/pd-view.js"/> 

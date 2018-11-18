@@ -7,7 +7,7 @@
 		<menu class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="PhishDetect">
 			<menupopup>
 				<menuitem id="pd-context-mail" label="(Re-)Check Email" oncommand="pdScanEmail();"/>
-				<menuitem id="pd-context-link" label="Check Link" oncommand="pdContextCheckLink(event);" collapsed="true"/>
+				<menuitem id="pd-context-link" label="Check Link" oncommand="pdContextCheckLink(event);" disabled="true"/>
 			</menupopup>
 		</menu>
 	</popup>

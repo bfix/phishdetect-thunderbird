@@ -43,10 +43,10 @@ function pdMailViewContext(event) {
 		return null;
 	}
 	// assemble context menu depending on the object
-	document.getElementById("pd-context-link").collapsed = true;
+	document.getElementById("pd-context-link").disabled = true;
 	pdContextNode = scan(event.target);
 	if (pdContextNode != null) {
-		document.getElementById("pd-context-link").collapsed = false;
+		document.getElementById("pd-context-link").disabled = false;
 	}
 }
 

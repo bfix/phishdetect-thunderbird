@@ -128,3 +128,25 @@ all indicators or all emails will be detected and flagged by PhishDetect!
 Don't forget to undo the change in `extension/chrome/content/libs/pd-client.js`
 (or the log will be cluttered with indicators). Re-package and re-install the
 extension for further testing.
+
+## Using the extension
+
+### Activate features
+
+To make full use of the extension, you need to manually activate two features:
+
+#### Toolbar menu
+
+Click on the Mail tab toolbar and select "Customize...". Drag the PhishDetect
+item from the list onto the toolbar at your preferred position. Your toolbar
+will now look like this:
+
+![PhishDetect Toolbar screenshot](https://github.com/bfix/phishdetect-thunderbird/docs/img/pd-toolbar.png "PhishDetect Toolbar")
+
+#### PhishDetect flag in email list
+
+You can add a PhishDetect column to the email list. Select the "columns
+display" icon and activate "PhishDetect". The column will appear and you can
+drag it to any position you prefer; the result will look like this:
+
+![PhishDetect column screenshot](https://github.com/bfix/phishdetect-thunderbird/docs/img/pd-cokumn.png "PhishDetect Column")
