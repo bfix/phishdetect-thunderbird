@@ -141,7 +141,7 @@ Click on the Mail tab toolbar and select "Customize...". Drag the PhishDetect
 item from the list onto the toolbar at your preferred position. Your toolbar
 will now look like this:
 
-![PhishDetect Toolbar screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/master/docs/img/pd-toolbar.png "PhishDetect Toolbar")
+![PhishDetect Toolbar screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/raw/master/docs/img/pd-toolbar.png)
 
 #### PhishDetect flag in email list
 
@@ -149,4 +149,41 @@ You can add a PhishDetect column to the email list. Select the "columns
 display" icon and activate "PhishDetect". The column will appear and you can
 drag it to any position you prefer; the result will look like this:
 
-![PhishDetect column screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/master/docs/img/pd-cokumn.png "PhishDetect Column")
+![PhishDetect column screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/raw/master/docs/img/pd-column.png)
+
+### Scanning email
+
+The extension will automatically check each incoming email, so no manual
+intervention is necessary. You can force a (re-)check of emails by opening
+the context menu (right-click) for either an email folder or a single email
+and selecting the scan/check function.
+
+If you have enabled thePhishDetect column, you will be able to identify
+detected emails at first glance.
+
+If you select a detected (phishing) email in the mail view, you will notice
+an additional header above the email body to notify you of a problem with
+this email:
+
+![PhishDetect notification bar screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/raw/master/docs/img/pd-notification-bar.png)
+
+Click "Hide Details/Show Details" to toggle the display of additional
+information. The details include the date of detection by PhishDetect and a
+list of problems it found in the email like known phishing sender and many
+more.
+
+All links in the email display have been blocked by the extension; blocked
+links are visually represented by a prefixed "[BLOCKED:" text. You can unblock
+links if you have to (for example to copy the linked address), but only
+temporarily. The next time the message is displayed, all links are blocked
+again.
+
+
+### Checking links
+
+If you receive emails that are not flagged by PhishDetect and find some
+suspicious links in them you don't know and want to evaluate, you can ask
+the PhishDetect node to perform checks on the link and the website behind it.
+To do so, you open the context menu over the link in the email body and
+select "Check Link..." in the PhishDetect submenu. The result of the check
+is displayed in a separate dialog box.
