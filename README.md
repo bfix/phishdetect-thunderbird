@@ -141,7 +141,7 @@ Click on the Mail tab toolbar and select "Customize...". Drag the PhishDetect
 item from the list onto the toolbar at your preferred position. Your toolbar
 will now look like this:
 
-![PhishDetect Toolbar screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/raw/master/docs/img/pd-toolbar.png)
+![PhishDetect Toolbar screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-toolbar.png)
 
 #### PhishDetect flag in email list
 
@@ -149,7 +149,7 @@ You can add a PhishDetect column to the email list. Select the "columns
 display" icon and activate "PhishDetect". The column will appear and you can
 drag it to any position you prefer; the result will look like this:
 
-![PhishDetect column screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/raw/master/docs/img/pd-column.png)
+![PhishDetect column screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-column.png)
 
 ### Scanning email
 
@@ -165,7 +165,7 @@ If you select a detected (phishing) email in the mail view, you will notice
 an additional header above the email body to notify you of a problem with
 this email:
 
-![PhishDetect notification bar screenshot](https://github.com/bfix/phishdetect-thunderbird/tree/raw/master/docs/img/pd-notification-bar.png)
+![PhishDetect notification bar screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-notification-bar.png)
 
 Click "Hide Details/Show Details" to toggle the display of additional
 information. The details include the date of detection by PhishDetect and a
