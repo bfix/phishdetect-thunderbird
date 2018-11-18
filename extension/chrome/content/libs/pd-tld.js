@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-const tldTrie = {
+const pdTldTrie = {
 	"aaa":{},"aarp":{},"abarth":{},"abb":{},"abbott":{},"abbvie":{},"abc":{},"able":{},
 	"abogado":{},"abudhabi":{},"ac":{"com":{},"edu":{},"gov":{},"mil":{},"net":{},"org":{}},
 	"academy":{"official":{}},"accenture":{},"accountant":{},"accountants":{},"aco":{},
@@ -1140,10 +1140,10 @@ const tldTrie = {
 	"gov":{},"mil":{},"org":{}}
 };
 
-function getDomainName(name) {
+function pdGetDomainName(name) {
 	var levels = name.split(".").reverse();
 	var num = levels.length;
-	var node = tldTrie;
+	var node = pdTldTrie;
 	var match = "";
 	var i;
 	for (i = 0; i < num; i++) {

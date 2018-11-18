@@ -279,7 +279,7 @@ function pdCheckDomain(full, name, type, context) {
 		return true
 	}
 	// check effective top-level domain
-	var tld = getDomainName(name);
+	var tld = pdGetDomainName(name);
 	if (tld == name) {
 		return false;
 	}

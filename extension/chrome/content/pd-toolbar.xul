@@ -4,8 +4,6 @@
 <!DOCTYPE overlay >
 <overlay id="pd-toolbar" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
-	<script type="text/javascript" src="chrome://phishdetect/content/pd-toolbar.js" />
-
 	<popupset>
 		<tooltip id="pd-toolbar-sync-tt" onpopupshowing="this.lastChild.value = 'Last sync: ' + pdGetLastSync();">
 			<label value="Last sync: ---"/>

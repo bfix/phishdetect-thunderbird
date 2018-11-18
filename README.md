@@ -47,7 +47,7 @@ go build -o gen-tldTrie gen-tldTrie.go
 ```
 
 The created list is stored in `tldTrie.json`. Replace the existing list
-in `extension/chrome/content/lib/tld.js` (at line `var tldTrie = `)
+in `extension/chrome/content/lib/pd-tld.js` (at line `var pdTldTrie = `)
 with the content of the JSON file.
 
 You can test the generated list with some domain names:
