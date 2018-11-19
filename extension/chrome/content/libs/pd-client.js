@@ -174,6 +174,7 @@ function pdCheckForIndicator(raw) {
 const pdIncidentType = [ "Test", "Domain", "Email" ];
 
 // send a report of pending incidents
+// @returns {int} number of reports sent
 function pdSendReport(pending, withContext, final) {
 	// get pending incidents if not an argument
 	if (pending === null) {
@@ -185,6 +186,7 @@ function pdSendReport(pending, withContext, final) {
 	
 	// send all incidents and flag them reported in database
 	var tasks = [];
+	var count = 0;
 	for (let i = 0; i < pending.length; i++) {
 		let incident = pending[i];
 		// flag incident as "in transit"
@@ -202,10 +204,11 @@ function pdSendReport(pending, withContext, final) {
 				incident.indicator, user, incident.id
 			)
 		);
+		count++;
 	}
 	// record last report date
 	if (tasks.length > 0) {
-		pdPrefs.setIntPref('reports_sync_last', Math.floor(Date.now() / 1000));
+		pdPrefs.setIntPref('reports_last', Math.floor(Date.now() / 1000));
 	}
 	// wait for all requests to finish.
 	var failed = false;
@@ -245,6 +248,8 @@ function pdSendReport(pending, withContext, final) {
 				final();
 			}
 		});
+	// return number of reported incidents
+	return count;
 }
 
 // send a notification about a detected indicator

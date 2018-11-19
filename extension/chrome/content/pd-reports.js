@@ -32,7 +32,7 @@ var pdReportsSending = false;
 function pdReportsOnLoad() {
 
 	// set date of last reporting
-	var v = pdGetPrefInt('reports_sync_last');
+	var v = pdGetPrefInt('reports_last');
 	var msg = pdGetElapsedTime(v);
 	document.getElementById("pd-dlg-reports-last").value = msg; 
 

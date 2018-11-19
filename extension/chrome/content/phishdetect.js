@@ -257,8 +257,8 @@ function pdTaskScheduler() {
 	if (reportSyncInterval > 0 && now > (lastReportSync + reportSyncInterval)) {
 		// send pending incidents
 		pdStatusMsg("Sending pending incident reports...");
-		pdSendReport(null, pdGetPrefBool('reports_context'), null);
-		let msg = "Pending incident reports sent.";
+		let num = pdSendReport(null, pdGetPrefBool('reports_context'), null);
+		let msg = (num > 0 ? num + " pending incident reports sent." : "No incidents to be reported.");
 		pdStatusMsg(msg);
 		pdLogger.log(msg);
 	}	
