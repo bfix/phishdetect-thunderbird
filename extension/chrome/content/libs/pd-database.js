@@ -26,7 +26,7 @@ var pdDatabase = {
 		
 	// add a list of (or a single) indicator to the database
 	addIndicators: function(indicators, kind, callback) {
-		var stmt = this.dbConn.createStatement("INSERT INTO indicators(indicator,kind) VALUES(:indicator,:kind)");
+		var stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO indicators(indicator,kind) VALUES(:indicator,:kind)");
 		if (Array.isArray(indicators)) {
 			let params = stmt.newBindingParamsArray();
 			for (let i = 0; i < indicators.length; i++) {
@@ -70,8 +70,30 @@ var pdDatabase = {
 		finally {
 			stmt.reset();
 		}
+		return null;
+	},
+
+	// returns the database identifier for an email
+	getEmailId: function(id, label) {
+		// check if the email record exists. if so, return the id
+		var stmt = this.dbConn.createStatement("SELECT id FROM emails WHERE message_id = :msgid");
+		stmt.params.msgid = id;
+		if (stmt.step()) {
+			return stmt.row.id;
+		}
+		// insert new record into the table
+		stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO emails(message_id,label) VALUES(:msgid,:label)");
+		stmt.params.msgid = id;
+		stmt.params.label = label;
+		stmt.execute();
+		return this.getEmailId(id, label);		
 	},
 	
+	// insert an email tag
+	insertEmailTag: function(emailId, raw, hash, indicator, type) {
+		
+	},
+
 	// record incident:
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
@@ -106,16 +128,17 @@ var pdDatabase = {
 	getIncidents: function(unreported) {
 		// combine tables to retrieve records
 		var sql = "SELECT " +
-				"inc.id AS id," +
-				"inc.timestamp AS timestamp," +
-				"inc.raw AS raw," +
-				"ind.indicator AS indicator," +
-				"inc.type AS type," +
-				"ind.kind AS kind," +
-				"inc.context_id AS context_id, " +
-				"inc.context_label AS context_label " +
-			"FROM incidents inc,indicators ind "+
-			"WHERE inc.indicator = ind.id";
+			"inc.id AS id," +
+			"inc.timestamp AS timestamp," +
+			"tag.raw AS raw," +
+			"ind.indicator AS indicator," +
+			"inc.type AS type," +
+			"ind.kind AS kind," +
+			"email.message_id AS context_id," +
+			"email.label AS context_label," +
+			"inc.reported AS reported " +
+			"FROM incidents inc, indicators ind, email_tags tag, emails email " +
+			"WHERE inc.email_tag = tag.id AND tag.email = email.id AND tag.indicator = ind.id";
 		// restrict search for unreported incidents
 		if (unreported) {
 			sql += " AND inc.reported = 0";
@@ -163,6 +186,13 @@ var pdDatabase = {
 		this.initialized = true;
 		this.dbSchema = {
 			tables: {
+				// TABLE emails
+				emails:
+					"id         INTEGER PRIMARY KEY,"+
+					"message_id VARCHAR(255) NOT NULL,"+
+					"label      VARCHAR(255) NOT NULL"+
+					"CONSTRAINT email_unique UNIQUE(message_id)",
+
 				// TABLE indicators
 				indicators:
 					"id         INTEGER PRIMARY KEY,"+
@@ -170,18 +200,26 @@ var pdDatabase = {
 					"kind       INTEGER DEFAULT 0,"+
 					"CONSTRAINT indicator_unique UNIQUE(indicator,kind)",
 					
+				// TABLE email_tags
+				email_tags:
+					"id         INTEGER PRIMARY KEY,"+
+					"email      INTEGER NOT NULL,"+
+					"raw        VARCHAR(1024) NOT NULL,"+
+					"hash       VARCHAR(64),"+
+					"indicator  INTEGER DEFAULT NULL,"+
+					"type       VARCHAR(32) NOT NULL,"+
+					"FOREIGN KEY(email) REFERENCES emails(id),"+
+					"FOREIGN KEY(indicator) REFERENCES indicators(id)",
+					
 				// TABLE incidents
 				incidents:
 					"id            INTEGER PRIMARY KEY,"+
-					"timestamp     INTEGER NOT NULL," +
-					"raw           VARCHAR(1024) NOT NULL," +
-					"indicator     INTEGER NOT NULL,"+
 					"type          VARCHAR(32) NOT NULL,"+
-					"context_id    VARCHAR(255) NOT NULL,"+
-					"context_label VARCHAR(255) NOT NULL,"+
+					"timestamp     INTEGER NOT NULL," +
+					"email_tag     INTEGER NOT NULL,"+
 					"reported      INTEGER DEFAULT 0,"+
-					"FOREIGN KEY(indicator) REFERENCES indicators(id),"+
-					"CONSTRAINT incident_unique UNIQUE(indicator,context_id)",
+					"FOREIGN KEY(email_tag) REFERENCES email_tags(id),"+
+					"CONSTRAINT incident_unique UNIQUE(email_tag)",
 			}
 		};
 		

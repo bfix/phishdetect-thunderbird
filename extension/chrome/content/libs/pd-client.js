@@ -146,7 +146,7 @@ function pdFetchIndicators(callback) {
 // check if a string is contained in the list of indicators.
 // provide a context (string, max 255 chars) to identify where
 // the indicator was detected (URL, MessageID,...)
-function pdCheckForIndicator(full, raw, type, context) {
+function pdCheckForIndicator(raw) {
 	pdLogger.debug("==> checkForIndicator(" + raw + ")");
 	// create entry for lookup
 	var hash = sha256.create();
@@ -154,17 +154,20 @@ function pdCheckForIndicator(full, raw, type, context) {
 	var indicator = bin2hex(hash.array());
 	
 	// TESTING: log indicator
-	// console.log('("' + indicator + '"),|' + raw);
+	// pdLogger.log('("' + indicator + '"),|' + raw);
 
 	// check if the indicator is listed.
 	var result = pdDatabase.hasIndicator(indicator);
-	for (let i = 0; i < result.length; i++) {
-		// record the incident
-		pdLogger.debug("recordIncident: context=" + JSON.stringify(context));
-		pdDatabase.recordIncident(full, result[i].id, type, context);
-		return true;
+	var rc = null;
+	if (result.length == 0) {
+		rc = { indicator: null };
+	} else {
+		rc = { indicator: indicator, ids: [] };
+		for (let i = 0; i < result.length; i++) {
+			rc.kind.push(result[i].id);
+		}
 	}
-	return false;
+	return rc;
 }
 
 
@@ -271,28 +274,48 @@ function pdSendEvent(kind, type, indicator, hashed, user, id) {
  * Dissect and analyze email message (MIME format with headers)
  *****************************************************************************/
 
-// check domain
-function pdCheckDomain(full, name, type, context) {
-	pdLogger.debug("checkDomain(" + name + ")");
-	// check full hostname (subdomain+.domain)
-	if (pdCheckForIndicator(full, name, type + "_hostname", context)) {
-		return true
+function pdTagList() {
+	this.data = [];
+	this.insert = function(full, raw, type) {
+		var rc = pdCheckForIndicator(full, raw);
+		var found = false;
+		if (rc !== null && rc.indicator !== null) {
+			found = true;
+			for (let i = 0; i < rc.ids.length; i++) {
+				this.data.push({
+					full: full,
+					raw: raw,
+					hash: rc.indicator,
+					indicator: rc.ids[i],
+					type: type
+				});
+			}
+		}
+		return found;
 	}
+};
+
+// check domain
+function pdCheckDomain(list, full, name, type) {
+	pdLogger.debug("checkDomain(" + name + ")");
+	// full hostname (subdomain+.domain)
+	list.insert(full, name, type);
+
 	// check effective top-level domain
 	var tld = pdGetDomainName(name);
 	if (tld == name) {
 		return false;
 	}
-	return pdCheckForIndicator(full, tld, type + "_domain", context);
+	return list.insert(full, tld, type + "_domain");
 }
 
 // check email address
-function pdCheckEmailAddress(addr, type, context) {
+function pdCheckEmailAddress(list, addr, type) {
 	// check if addr is a list of addresses
 	if (Array.isArray(addr)) {
 		let rc = false;
 		for (let i = 0; i < addr.length; i++) {
-			rc |= pdCheckEmailAddress(addr[i], type, context);
+			rc |= pdCheckEmailAddress(list, addr[i], type);
 		}
 		return rc;
 	}
@@ -306,7 +329,7 @@ function pdCheckEmailAddress(addr, type, context) {
 	pdLogger.debug("=> " + addr);
 
 	// check if email address is an indicator.
-	if (pdCheckForIndicator(addr, addr, type, context)) {
+	if (list.insert(addr, addr, type)) {
 		return true;
 	}
 	// check email domain
@@ -316,35 +339,35 @@ function pdCheckEmailAddress(addr, type, context) {
 	} catch(error) {
 		pdLogger.error("email addr failed: " + addr);
 	}
-	return pdCheckDomain(addr, domain, type, context);
+	return pdCheckDomain(list, addr, domain, type);
 }
 
 // check mail hops
-function pdCheckMailHop(hop, context) {
+function pdCheckMailHop(list, hop) {
 	pdLogger.debug("checkMailHop(" + hop + ")");
 	return false;
 }
 
 // check link
-function pdCheckLink(link, type, context) {
+function pdCheckLink(list, link, type) {
 	pdLogger.debug("checkLink(" + link + ")");
 	// check for email link
 	if (link.startsWith("mailto:")) {
 		return {
-			status: pdCheckEmailAddress(link.substring(7), type + "_mailto", context),
+			status: pdCheckEmailAddress(list, link.substring(7), type + "_mailto"),
 			mode: "email"
 		}
 	}	
 	// check domain
 	var url = new URL(link);
 	return {
-		status: pdCheckDomain(link, url.hostname, type, context),
+		status: pdCheckDomain(list, link, url.hostname, type),
 		mode: "link"
 	}
 }
 
 // check MIME part of the email
-function pdCheckMIMEPart(part, rc, skip, context) {
+function pdCheckMIMEPart(list, part, rc, skip) {
 	// find MIME part to scan
 	var usePart = null;
 	var bodyType = null;
@@ -374,7 +397,7 @@ function pdCheckMIMEPart(part, rc, skip, context) {
 		case "multipart/mixed":
 			// process all parts
 			for (let i = 0; i < part.parts.length; i++) {
-				pdCheckMIMEPart(part.parts[i], rc, true, context);
+				pdCheckMIMEPart(list, part.parts[i], rc, true);
 			}
 			return;
 		default:
@@ -393,7 +416,7 @@ function pdCheckMIMEPart(part, rc, skip, context) {
 	
 	// shared code to process links
 	var processLink = function(link,rc) {
-		var res = pdCheckLink(link, "email_link", context);
+		var res = pdCheckLink(list, link, "email_link");
 		switch (res.mode) {
 		case "email":
 			rc.totalEmail++;
@@ -416,13 +439,13 @@ function pdCheckMIMEPart(part, rc, skip, context) {
 		reg = new RegExp("<a\\s*href=([^\\s>]*)", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
 			let link = result[1].replace(/^["']?|["']?$/gm,'');
-			processLink(link, rc, "email_link", context);
+			processLink(list, link, rc, "email_link");
 		}
 	} else if (bodyType == "text/plain") {
 		// scan plain text
 		reg = new RegExp("\\s?((http|https|ftp)://[^\\s<]+[^\\s<\.)])", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
-			processLink(result[1], rc, "email_link", context);
+			processLink(list, result[1], rc, "email_link");
 		}
 	}
 }
@@ -435,27 +458,20 @@ function pdCheckMIMEPart(part, rc, skip, context) {
 function pdInspectEMail(email) {
 	pdLogger.debug("inspectEMail(): " + email.headers.from);
 	
-	// assemble a context object
-	var context = {
-		id: email.headers["message-id"][0],
-		label: "From " + email.headers.from + " (" + email.headers.date + ")"
-	};
-	pdLogger.debug("inspectEmail: context=" + JSON.stringify(context));
-
 	// compile a list of incidents
-	var list = [];
+	var list = new pdTagList();
 
 	// check sender(s) of email
 	pdLogger.debug(JSON.stringify(email.headers));
 	var count = 0;
 	var total = 1;
-	if (pdCheckEmailAddress(email.headers.from, "email_from", context)) {
+	if (pdCheckEmailAddress(list, email.headers.from, "email_from")) {
 		count++;
 	}
 	if (email.headers.sender !== undefined) {
 		total += email.headers.sender.length; 
 		email.headers.sender.forEach(sender => {
-			if (pdCheckEmailAddress(sender, "email_sender", context)) {
+			if (pdCheckEmailAddress(list, sender, "email_sender")) {
 				count++;
 			}
 		});
@@ -469,14 +485,14 @@ function pdInspectEMail(email) {
 	total = 0;
 	if (email.headers["reply-to"] !== undefined) {
 		total = 1;
-		if (pdCheckEmailAddress(email.headers["reply-to"], "email_replyto", context)) {
+		if (pdCheckEmailAddress(list, email.headers["reply-to"], "email_replyto")) {
 			count++;
 		}
 	}
 	if (email.headers["return-path"] !== undefined) {
 		total += email.headers["return-path"].length;
 		email.headers["return-path"].forEach(replyTo => {
-			if (pdCheckEmailAddress(replyTo, "email_return", context)) {
+			if (pdCheckEmailAddress(list, replyTo, "email_return")) {
 				count++;
 			}
 		});
@@ -491,7 +507,7 @@ function pdInspectEMail(email) {
 	if (email.headers.received !== undefined) {
 		total += email.headers.received.length;
 		email.headers.received.forEach(hop => {
-			if (pdCheckMailHop(hop, context)) {
+			if (pdCheckMailHop(list, hop)) {
 				count++;
 			}
 		});
@@ -499,7 +515,7 @@ function pdInspectEMail(email) {
 	if (email.headers["x-received"] !== undefined) {
 		total += email.headers["x-received"].length;
 		email.headers["x-received"].forEach(hop => {
-			if (pdCheckMailHop(hop, context)) {
+			if (pdCheckMailHop(list, hop)) {
 				count++;
 			}
 		});
@@ -512,13 +528,23 @@ function pdInspectEMail(email) {
 	// inspect MIME parts
 	var rc = { countLinks: 0, totalLinks: 0, countEmail: 0, totalEmail: 0 }
 	email.parts.forEach(part => {
-		pdCheckMIMEPart(part, rc, false, context);
+		pdCheckMIMEPart(list, part, rc, false);
 	});
 	if (rc.countLinks > 0) {
 		list.push("Links (" + rc.countLinks + "/" + rc.totalLinks + ")");
 	}
 	if (rc.countEmail > 0) {
 		list.push("Email addresses (" + rc.countEmail + "/" + rc.totalEmail + ")");
+	}
+
+	// get the email identifier in the database
+	var label = "From " + email.headers.from + " (" + email.headers.date + ")";
+	var emailId = pdDatabase.getEMailId(email.headers["message-id"][0], label);
+	pdLogger.debug("email id: " + emailId);
+
+	// insert tags into the database.
+	for (let i = 0; i < list.length; i++) {
+		
 	}
 	
 	// TEST mode:
