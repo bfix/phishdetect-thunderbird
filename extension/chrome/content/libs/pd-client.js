@@ -158,14 +158,9 @@ function pdCheckForIndicator(raw) {
 
 	// check if the indicator is listed.
 	var result = pdDatabase.hasIndicator(indicator);
-	var rc = null;
-	if (result.length == 0) {
-		rc = { indicator: null };
-	} else {
-		rc = { indicator: indicator, ids: [] };
-		for (let i = 0; i < result.length; i++) {
-			rc.kind.push(result[i].id);
-		}
+	var rc = { indicator: indicator, ids: [] };
+	for (let i = 0; i < result.length; i++) {
+		rc.ids.push(result[i].id);
 	}
 	return rc;
 }
@@ -274,12 +269,12 @@ function pdSendEvent(kind, type, indicator, hashed, user, id) {
  * Dissect and analyze email message (MIME format with headers)
  *****************************************************************************/
 
-function pdTagList() {
+var pdTagList = function() {
 	this.data = [];
 	this.insert = function(full, raw, type) {
-		var rc = pdCheckForIndicator(full, raw);
+		var rc = pdCheckForIndicator(raw);
 		var found = false;
-		if (rc !== null && rc.indicator !== null) {
+		if (rc.ids.length > 0) {
 			found = true;
 			for (let i = 0; i < rc.ids.length; i++) {
 				this.data.push({
@@ -290,7 +285,21 @@ function pdTagList() {
 					type: type
 				});
 			}
+		} else {
+			// tag without a reference in the indicator table
+			found = false;
+			this.data.push({
+				full: full,
+				raw: raw,
+				hash: rc.indicator,
+				indicator: 0,
+				type: type
+			});
 		}
+		pdLogger.debug(
+			"*** pdTagList.insert(): pdCheckForIndicator() => " + JSON.stringify(rc) +
+			" {" + found + "} [" + this.data.length + "]"
+		);
 		return found;
 	}
 };
@@ -439,13 +448,13 @@ function pdCheckMIMEPart(list, part, rc, skip) {
 		reg = new RegExp("<a\\s*href=([^\\s>]*)", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
 			let link = result[1].replace(/^["']?|["']?$/gm,'');
-			processLink(list, link, rc, "email_link");
+			processLink(link, rc, "email_link");
 		}
 	} else if (bodyType == "text/plain") {
 		// scan plain text
 		reg = new RegExp("\\s?((http|https|ftp)://[^\\s<]+[^\\s<\.)])", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
-			processLink(list, result[1], rc, "email_link");
+			processLink(result[1], rc, "email_link");
 		}
 	}
 }
@@ -459,19 +468,21 @@ function pdInspectEMail(email) {
 	pdLogger.debug("inspectEMail(): " + email.headers.from);
 	
 	// compile a list of incidents
-	var list = new pdTagList();
+	var tagList = new pdTagList();
+	pdLogger.debug("tagList = " + tagList);
+	var list = [];
 
 	// check sender(s) of email
 	pdLogger.debug(JSON.stringify(email.headers));
 	var count = 0;
 	var total = 1;
-	if (pdCheckEmailAddress(list, email.headers.from, "email_from")) {
+	if (pdCheckEmailAddress(tagList, email.headers.from, "email_from")) {
 		count++;
 	}
 	if (email.headers.sender !== undefined) {
 		total += email.headers.sender.length; 
 		email.headers.sender.forEach(sender => {
-			if (pdCheckEmailAddress(list, sender, "email_sender")) {
+			if (pdCheckEmailAddress(tagList, sender, "email_sender")) {
 				count++;
 			}
 		});
@@ -485,14 +496,14 @@ function pdInspectEMail(email) {
 	total = 0;
 	if (email.headers["reply-to"] !== undefined) {
 		total = 1;
-		if (pdCheckEmailAddress(list, email.headers["reply-to"], "email_replyto")) {
+		if (pdCheckEmailAddress(tagList, email.headers["reply-to"], "email_replyto")) {
 			count++;
 		}
 	}
 	if (email.headers["return-path"] !== undefined) {
 		total += email.headers["return-path"].length;
 		email.headers["return-path"].forEach(replyTo => {
-			if (pdCheckEmailAddress(list, replyTo, "email_return")) {
+			if (pdCheckEmailAddress(tagList, replyTo, "email_return")) {
 				count++;
 			}
 		});
@@ -507,7 +518,7 @@ function pdInspectEMail(email) {
 	if (email.headers.received !== undefined) {
 		total += email.headers.received.length;
 		email.headers.received.forEach(hop => {
-			if (pdCheckMailHop(list, hop)) {
+			if (pdCheckMailHop(tagList, hop)) {
 				count++;
 			}
 		});
@@ -515,7 +526,7 @@ function pdInspectEMail(email) {
 	if (email.headers["x-received"] !== undefined) {
 		total += email.headers["x-received"].length;
 		email.headers["x-received"].forEach(hop => {
-			if (pdCheckMailHop(list, hop)) {
+			if (pdCheckMailHop(tagList, hop)) {
 				count++;
 			}
 		});
@@ -528,7 +539,7 @@ function pdInspectEMail(email) {
 	// inspect MIME parts
 	var rc = { countLinks: 0, totalLinks: 0, countEmail: 0, totalEmail: 0 }
 	email.parts.forEach(part => {
-		pdCheckMIMEPart(list, part, rc, false);
+		pdCheckMIMEPart(tagList, part, rc, false);
 	});
 	if (rc.countLinks > 0) {
 		list.push("Links (" + rc.countLinks + "/" + rc.totalLinks + ")");
@@ -539,15 +550,22 @@ function pdInspectEMail(email) {
 
 	// get the email identifier in the database
 	var label = "From " + email.headers.from + " (" + email.headers.date + ")";
-	var emailId = pdDatabase.getEMailId(email.headers["message-id"][0], label);
+	var emailId = pdDatabase.getEmailId(email.headers["message-id"][0], label);
 	pdLogger.debug("email id: " + emailId);
 
 	// insert tags into the database.
-	for (let i = 0; i < list.length; i++) {
-		
+	for (let i = 0; i < tagList.data.length; i++) {
+		let tag = tagList.data[i];
+		pdLogger.debug("Adding tag: " + tag);
+		// get the database id of the email tag
+		let tagId = pdDatabase.getTagId(emailId, tag.raw, tag.hash, tag.indicator, tag.type);
+		// record incident if indicator found
+		if (tag.indicator != 0) {
+			pdDatabase.recordIncident(tagId);
+		}
 	}
 	
-	// TEST mode:
+	// TEST mode: The demo incidents are not recorded and reported.
 	if (pdGetPrefBool("test") && list.length == 0) {
 		let rate = pdGetPrefInt("test_rate") / 100;
 		if (Math.random() < rate) {

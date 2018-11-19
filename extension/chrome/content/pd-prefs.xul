@@ -13,18 +13,18 @@
 		<script type="text/javascript" src="chrome://phishdetect/content/pd-prefs.js"/> 
 
 		<preferences>
-			<preference id="pref-node-url"          name="extensions.phishdetect.node_url"          type="string"/>
-			<preference id="pref-node-sync"         name="extensions.phishdetect.node_sync"         type="int"/>
-			<preference id="pref-node-sync-last"    name="extensions.phishdetect.node_sync_last"    type="int"/>
-			<preference id="pref-reports"           name="extensions.phishdetect.reports"           type="bool"/>
-			<preference id="pref-reports-sync"      name="extensions.phishdetect.reports_sync"      type="int"/>
-			<preference id="pref-reports-sync-last" name="extensions.phishdetect.reports_sync_last" type="int"/>
-			<preference id="pref-reports-context"   name="extensions.phishdetect.reports_context"   type="bool"/>
-			<preference id="pref-reports-contact"   name="extensions.phishdetect.reports_contact"   type="string"/>
-			<preference id="pref-test"              name="extensions.phishdetect.test"              type="bool"/>
-			<preference id="pref-test-rate"         name="extensions.phishdetect.test_rate"         type="int"/>
-			<preference id="pref-test-report"       name="extensions.phishdetect.test_report"       type="bool"/>
-			<preference id="pref-debug"             name="extensions.phishdetect.debug"             type="bool"/>
+			<preference id="pref-node-url"        name="extensions.phishdetect.node_url"        type="string"/>
+			<preference id="pref-node-sync"       name="extensions.phishdetect.node_sync"       type="int"/>
+			<preference id="pref-node-sync-last"  name="extensions.phishdetect.node_sync_last"  type="int"/>
+			<preference id="pref-node-rescan"     name="extensions.phishdetect.node_rescan"     type="bool"/>
+			<preference id="pref-reports"         name="extensions.phishdetect.reports"         type="bool"/>
+			<preference id="pref-reports-last"    name="extensions.phishdetect.reports_last"    type="int"/>
+			<preference id="pref-reports-context" name="extensions.phishdetect.reports_context" type="bool"/>
+			<preference id="pref-reports-contact" name="extensions.phishdetect.reports_contact" type="string"/>
+			<preference id="pref-test"            name="extensions.phishdetect.test"            type="bool"/>
+			<preference id="pref-test-rate"       name="extensions.phishdetect.test_rate"       type="int"/>
+			<preference id="pref-test-report"     name="extensions.phishdetect.test_report"     type="bool"/>
+			<preference id="pref-debug"           name="extensions.phishdetect.debug"           type="bool"/>
 		</preferences>
 
 		<tabbox>
@@ -54,9 +54,11 @@
 							<textbox id="pd-pref-node-sync" preference="pref-node-sync" width="150" placeholder="60"
 								onchange="pdPrefsPane.changed('node-sync');"/>
 						</hbox>
+						<checkbox id="pd-pref-node-rescan" label="Background re-scan of old email for new indicators" preference="pref-node-rescan"/>
 					</groupbox>
 					<spacer flex="1"/>
 					<hbox align="center">
+						<spacer flex="1"/>
 						<label value="Last sync: "/>
 						<label id="pd-pref-node-sync-last"/>
 					</hbox>
@@ -71,19 +73,7 @@
 							<checkbox id="pd-pref-reports" label="Enable reporting" preference="pref-reports" checked="false"
 								oncommand="pdPrefsPane.update_reports();" />
 						</caption>
-						<hbox align="center">
-							<label control="pd-pref-reports-sync" value="Auto send report:"/>
-							<menulist id="pd-pref-reports-sync" preference="pref-reports-sync">
-								<menupopup>
-									<menuitem label="Disabled" value="0"/>
-									<menuitem label="On event" value="-1" selected="true"/>
-									<menuitem label="Once a day" value="1"/>
-									<menuitem label="Once a week" value="7"/>
-									<menuitem label="Once a month" value="30"/>
-								</menupopup>
-							</menulist>
-						</hbox>
-						<checkbox id="pd-pref-reports-context" label="Include context in report" preference="pref-reports-context" checked="false"/>
+						<checkbox id="pd-pref-reports-context" label="Include Email ID for reference" preference="pref-reports-context" checked="false"/>
 						<hbox align="center">
 							<label control="pd-pref-reports-contact" value="User:"/>
 							<textbox id="pd-pref-reports-contact" preference="pref-reports-contact" placeholder="Enter a user name..."
@@ -92,8 +82,9 @@
 					</groupbox>
 					<spacer flex="1"/>
 					<hbox align="center">
+						<spacer flex="1"/>
 						<label value="Last sync: "/>
-						<label id="pd-pref-reports-sync-last"/>
+						<label id="pd-pref-reports-last"/>
 					</hbox>
 				</tabpanel>
 
@@ -121,7 +112,7 @@
 				     =================================================== -->
 				<tabpanel>
 					<textbox id="pd-pref-node-sync-last-value" preference="pref-node-sync-last" readonly="true"/>
-					<textbox id="pd-pref-reports-sync-last-value" preference="pref-reports-sync-last" readonly="true"/>
+					<textbox id="pd-pref-reports-last-value" preference="pref-reports-last" readonly="true"/>
 				</tabpanel>
 			</tabpanels>
 		</tabbox>

@@ -57,10 +57,6 @@ function pdScanEmail() {
 		// set message header to reflect detection status
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 		pdStatusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
-		// check for auto-send report
-		if (pdGetPrefInt('reports_sync') == -1) {
-			pdSendReport(null, pdGetPrefBool('reports_context'), null);
-		}
 		// TODO: update rendering of message
 	});
 }
@@ -88,10 +84,6 @@ function pdScanFolder() {
 		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
 		if (aRC.phish) {
 			flagged++;
-			// check for auto-send report
-			if (pdGetPrefInt('reports_sync') == -1) {
-				pdSendReport(null, pdGetPrefBool('reports_context'), null);
-			}
 		}
 		// status feedback
 		pdStatusMsg('Evaluated ' + pos + ' of ' + count + ' emails in folder: ' + flagged + ' suspicious.');
@@ -135,10 +127,6 @@ var pdNewMailListener = {
 		if (!aMsgHdr.isRead) {
 			pdCheckMessage(aMsgHdr, function(aMsgHdr, aRC) {
 				aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
-				// check for auto-send report
-				if (aRC.phish && pdGetPrefInt('reports_sync') == -1) {
-					pdSendReport(null, pdGetPrefBool('reports_context'), null);
-				}
 			});
 		}
 	}
@@ -241,7 +229,7 @@ function pdGetLastSync() {
 
 //get timestamp of last report
 function pdGetLastReport() {
-	var v = pdGetPrefInt('reports_sync_last');
+	var v = pdGetPrefInt('reports_last');
 	return pdGetElapsedTime(v);
 }
 
@@ -255,10 +243,9 @@ function pdTaskScheduler() {
 	pdLogger.debug("=> last node sync: " + lastNodeSync);
 	var nodeSyncInterval = pdGetPrefInt('node_sync') * 60; // minutes
 	pdLogger.debug("=> node sync interval: " + nodeSyncInterval);
-	var lastReportSync = pdGetPrefInt('reports_sync_last');
+	var lastReportSync = pdGetPrefInt('reports_last');
 	pdLogger.debug("=> last report sync: " + lastReportSync);
-	var reportSyncInterval = pdGetPrefInt('reports_sync') * 86400; // days
-	pdLogger.debug("=> report sync interval: " + reportSyncInterval);
+	var reportSyncInterval = 3600; // every hour
 	
 	// check for pending node sync
 	if (nodeSyncInterval > 0 && now > (lastNodeSync + nodeSyncInterval)) {

@@ -26,7 +26,9 @@ var pdDatabase = {
 		
 	// add a list of (or a single) indicator to the database
 	addIndicators: function(indicators, kind, callback) {
-		var stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO indicators(indicator,kind) VALUES(:indicator,:kind)");
+		var stmt = this.dbConn.createStatement(
+			"INSERT OR IGNORE INTO indicators(indicator,kind) VALUES(:indicator,:kind)"
+		);
 		if (Array.isArray(indicators)) {
 			let params = stmt.newBindingParamsArray();
 			for (let i = 0; i < indicators.length; i++) {
@@ -58,7 +60,9 @@ var pdDatabase = {
 	// returns a list of occurrences (same indicator for different kinds like
 	// domain, emails,...) or an empty list if the indicator is not found.
 	hasIndicator: function(indicator) {
-		var stmt = this.dbConn.createStatement("SELECT id,kind FROM indicators WHERE indicator = :indicator");
+		var stmt = this.dbConn.createStatement(
+			"SELECT id,kind FROM indicators WHERE indicator = :indicator"
+		);
 		try {
 			stmt.params.indicator = indicator;
 			let result = [];
@@ -72,45 +76,80 @@ var pdDatabase = {
 		}
 		return null;
 	},
+	
+	// get the PhishDetect status of an email
+	// 0 = unchecked, 1 = positive, -1 = negative
+	getEmailStatus: function(msgId) {
+		var stmt = this.dbConn.createStatement(
+			"SELECT count(i.id) AS count FROM incidents i, email_tags t, emails e "+
+			"WHERE e.id = t.email AND t.id = i.email_tag AND e.message_id = :msgid"
+		);
+		stmt.params.msgid = msgId;
+		if (!stmt.step()) {
+			return 0;
+		}
+		return (stmt.row.count > 0 ? 1 : -1);
+	},
 
 	// returns the database identifier for an email
 	getEmailId: function(id, label) {
 		// check if the email record exists. if so, return the id
-		var stmt = this.dbConn.createStatement("SELECT id FROM emails WHERE message_id = :msgid");
+		var stmt = this.dbConn.createStatement(
+			"SELECT id FROM emails WHERE message_id = :msgid"
+		);
 		stmt.params.msgid = id;
 		if (stmt.step()) {
 			return stmt.row.id;
 		}
 		// insert new record into the table
-		stmt = this.dbConn.createStatement("INSERT OR IGNORE INTO emails(message_id,label) VALUES(:msgid,:label)");
+		stmt = this.dbConn.createStatement(
+			"INSERT OR IGNORE INTO emails(message_id,label) VALUES(:msgid,:label)"
+		);
 		stmt.params.msgid = id;
 		stmt.params.label = label;
 		stmt.execute();
 		return this.getEmailId(id, label);		
 	},
 	
-	// insert an email tag
-	insertEmailTag: function(emailId, raw, hash, indicator, type) {
-		
+	// get the identifier of an email tag
+	getTagId: function(emailId, raw, hash, indicator, type) {
+		// check if the tag record exists. if so, return the id
+		var stmt = this.dbConn.createStatement(
+			"SELECT id FROM email_tags WHERE "+
+			"email = :email AND raw = :raw AND type = :type"
+		);
+		stmt.params.email = emailId;
+		stmt.params.raw = raw;
+		stmt.params.type = type;
+		if (stmt.step()) {
+			return stmt.row.id;
+		}
+		// insert new record into the table
+		stmt = this.dbConn.createStatement(
+			"INSERT OR IGNORE INTO email_tags(email,type,raw,hash,indicator) "+
+			"VALUES(:email,:type,:raw,:hash,:indicator)"
+		);
+		stmt.params.email = emailId;
+		stmt.params.type = type;
+		stmt.params.raw = raw;
+		stmt.params.hash = hash;
+		stmt.params.indicator = indicator;
+		stmt.execute();
+		return this.getTagId(emailId, raw, hash, indicator, type);
 	},
 
 	// record incident:
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
-	recordIncident: function(raw, id, type, context) {
+	recordIncident: function(tagId) {
 		var stmt = null;
 		try {
 			stmt = this.dbConn.createStatement(
-				"INSERT OR IGNORE INTO incidents(timestamp,raw,indicator,type,context_id,context_label) "+
-				"VALUES(:ts,:raw,:indicator,:type,:ctxid,:ctxlabel)"
+				"INSERT OR IGNORE INTO incidents(timestamp,email_tag) VALUES(:ts,:tag)"
 			);
-			stmt.params.raw = raw;
 			stmt.params.ts = Date.now();
-			stmt.params.indicator = id;
-			stmt.params.type = type;
-			stmt.params.ctxid = context.id;
-			stmt.params.ctxlabel = context.label;
-			stmt.executeStep();
+			stmt.params.tag = tagId;
+			stmt.execute();
 		}
 		catch(e) {
 			pdLogger.error(e);
@@ -118,7 +157,7 @@ var pdDatabase = {
 		}
 		finally {
 			if (stmt !== null) {
-				pdLogger.log("recordIncident(" + id + ",'" + context.id + "')");
+				pdLogger.log("recordIncident(" + tagId + ")");
 				stmt.reset();
 			}
 		}
@@ -132,7 +171,7 @@ var pdDatabase = {
 			"inc.timestamp AS timestamp," +
 			"tag.raw AS raw," +
 			"ind.indicator AS indicator," +
-			"inc.type AS type," +
+			"tag.type AS type," +
 			"ind.kind AS kind," +
 			"email.message_id AS context_id," +
 			"email.label AS context_label," +
@@ -190,7 +229,7 @@ var pdDatabase = {
 				emails:
 					"id         INTEGER PRIMARY KEY,"+
 					"message_id VARCHAR(255) NOT NULL,"+
-					"label      VARCHAR(255) NOT NULL"+
+					"label      VARCHAR(255) NOT NULL,"+
 					"CONSTRAINT email_unique UNIQUE(message_id)",
 
 				// TABLE indicators
@@ -214,7 +253,6 @@ var pdDatabase = {
 				// TABLE incidents
 				incidents:
 					"id            INTEGER PRIMARY KEY,"+
-					"type          VARCHAR(32) NOT NULL,"+
 					"timestamp     INTEGER NOT NULL," +
 					"email_tag     INTEGER NOT NULL,"+
 					"reported      INTEGER DEFAULT 0,"+

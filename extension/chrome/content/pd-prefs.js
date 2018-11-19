@@ -29,9 +29,9 @@ var pdPrefsPane = {
 		document.getElementById('pd-pref-node-sync-last').value = msg;
 
 		// set time of last report sync
-		v = document.getElementById('pd-pref-reports-sync-last-value').value;
+		v = document.getElementById('pd-pref-reports-last-value').value;
 		msg = pdGetElapsedTime(v);
-		document.getElementById('pd-pref-reports-sync-last').value = msg;
+		document.getElementById('pd-pref-reports-last').value = msg;
 		
 		// run updaters
 		this.update_reports();
@@ -49,8 +49,6 @@ var pdPrefsPane = {
 	// update reporting status
 	update_reports: function() {
 		var disabled = !document.getElementById("pd-pref-reports").checked;
-		document.getElementById("pd-pref-reports-sync").disabled = disabled;		
-		document.getElementById("pd-pref-reports-hashed").disabled = disabled;		
 		document.getElementById("pd-pref-reports-context").disabled = disabled;		
 		document.getElementById("pd-pref-reports-contact").disabled = disabled;		
 	},
