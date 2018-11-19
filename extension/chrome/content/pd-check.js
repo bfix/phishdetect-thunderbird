@@ -18,15 +18,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// flag for running check: only one check is allowed at a time and the
+// dialog can't be closed until the check finished.
+var pdCheckRunning = false;
+var pdCheckButton = null;
+
 // check dialog loaded: set content and request scan
 function pdCheckOnLoad(event) {
+	pdLogger.debug("check flag: " + pdCheckRunning);
+	pdCheckRunning = true;
+
 	// set URL to check
 	var url = window.arguments[0].url;
-	var dispURL = url;
-	if (dispURL.length > 80) {
-		dispURL = url.substr(0,80) + "...";
-	}
-	document.getElementById("pd-check-url-value").value = dispURL;
+	document.documentElement.firstChild.setAttribute('title', url);
+
+	// disable "close" button
+	pdCheckButton = document.documentElement.getButton('accept');
+	pdCheckButton.disabled = true;
 	
 	// handle decks
 	var deck = document.getElementById("pd-check-canvas");
@@ -81,10 +89,13 @@ function pdCheckOnLoad(event) {
 					addEntry('None');
 				}
 			}
+			// enable "close" button
+			pdCheckButton.disabled = false;
+			pdCheckRunning = false;
 		});
 }
 
 
-function pdCheckOnClose() {
-	
+function pdCheckClose() {
+	return !pdCheckRunning;
 }
