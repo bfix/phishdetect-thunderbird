@@ -78,41 +78,60 @@ var pdDatabase = {
 	},
 	
 	// get the PhishDetect status of an email
-	// 0 = unchecked, 1 = positive, -1 = negative
 	getEmailStatus: function(msgId) {
 		var stmt = this.dbConn.createStatement(
-			"SELECT count(i.id) AS count FROM incidents i, email_tags t, emails e "+
-			"WHERE e.id = t.email AND t.id = i.email_tag AND e.message_id = :msgid"
+			"SELECT status FROM emails WHERE message_id = :msgid"
 		);
 		stmt.params.msgid = msgId;
 		if (!stmt.step()) {
-			return 0;
+			return null;
 		}
-		return (stmt.row.count > 0 ? 1 : -1);
+		return JSON.parse(stmt.row.status);
+	},
+	
+	// set the PhishDetect status of an email
+	setEmailStatus: function(msgId,stat) {
+		var stmt = this.dbConn.createStatement(
+			"UPDATE emails SET status = :status WHERE message_id = :msgid"
+		);
+		stmt.params.msgid = msgId;
+		stmt.params.status = JSON.stringify(stat);
+		return stmt.step();
 	},
 
 	// returns the database identifier for an email
-	getEmailId: function(id, label) {
-		// check if the email record exists. if so, return the id
-		var stmt = this.dbConn.createStatement(
-			"SELECT id FROM emails WHERE message_id = :msgid"
-		);
-		stmt.params.msgid = id;
-		if (stmt.step()) {
-			return stmt.row.id;
+	getEmailId: function(id, label, isRetry) {
+		try {
+			// check if the email record exists. if so, return the id
+			var stmt = this.dbConn.createStatement(
+				"SELECT id FROM emails WHERE message_id = :msgid"
+			);
+			stmt.params.msgid = id;
+			if (stmt.step()) {
+				return stmt.row.id;
+			}
+			// sanity check
+			if (isRetry !== undefined) {
+				pdLogger.error("getEmailId() recursion");
+				return 0;
+			}
+			// insert new record into the table
+			stmt = this.dbConn.createStatement(
+				"INSERT OR IGNORE INTO emails(message_id,label) VALUES(:msgid,:label)"
+			);
+			stmt.params.msgid = id;
+			stmt.params.label = label;
+			stmt.execute();
+			return this.getEmailId(id, label, true);
 		}
-		// insert new record into the table
-		stmt = this.dbConn.createStatement(
-			"INSERT OR IGNORE INTO emails(message_id,label) VALUES(:msgid,:label)"
-		);
-		stmt.params.msgid = id;
-		stmt.params.label = label;
-		stmt.execute();
-		return this.getEmailId(id, label);		
+		catch(e) {
+			pdLogger.error("getEmailId() failed: " + e);
+			return 0;
+		}
 	},
 	
 	// get the identifier of an email tag
-	getTagId: function(emailId, raw, hash, indicator, type) {
+	getTagId: function(emailId, raw, hash, indicator, type, isRetry) {
 		// check if the tag record exists. if so, return the id
 		var stmt = this.dbConn.createStatement(
 			"SELECT id FROM email_tags WHERE "+
@@ -123,6 +142,11 @@ var pdDatabase = {
 		stmt.params.type = type;
 		if (stmt.step()) {
 			return stmt.row.id;
+		}
+		// sanity check
+		if (isRetry !== undefined) {
+			pdLogger.error("getEmailId() recursion");
+			return 0;
 		}
 		// insert new record into the table
 		stmt = this.dbConn.createStatement(
@@ -135,7 +159,7 @@ var pdDatabase = {
 		stmt.params.hash = hash;
 		stmt.params.indicator = indicator;
 		stmt.execute();
-		return this.getTagId(emailId, raw, hash, indicator, type);
+		return this.getTagId(emailId, raw, hash, indicator, type, true);
 	},
 
 	// record incident:
@@ -230,6 +254,7 @@ var pdDatabase = {
 					"id         INTEGER PRIMARY KEY,"+
 					"message_id VARCHAR(255) NOT NULL,"+
 					"label      VARCHAR(255) NOT NULL,"+
+					"status     VARCHAR(1024) DEFAULT '',"+
 					"CONSTRAINT email_unique UNIQUE(message_id)",
 
 				// TABLE indicators

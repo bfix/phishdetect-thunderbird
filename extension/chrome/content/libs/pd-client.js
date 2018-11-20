@@ -274,6 +274,17 @@ function pdSendEvent(kind, type, indicator, hashed, user, id) {
  * Dissect and analyze email message (MIME format with headers)
  *****************************************************************************/
 
+// flag the message as scanned by PhishDetect (and store scan result)
+function pdSetMsgFlag(aMsgHdr, aRC) {
+	return pdDatabase.setEmailStatus(aMsgHdr.messageId, aRC);
+}
+
+// get the PhishDetect flag for a message
+function pdGetMsgFlag(aMsgHdr) {
+	return pdDatabase.getEmailStatus(aMsgHdr.messageId);
+}
+
+// list of tags (possible indicators) in an email
 var pdTagList = function() {
 	this.data = [];
 	this.insert = function(full, raw, type) {
@@ -373,11 +384,17 @@ function pdCheckLink(list, link, type) {
 		}
 	}	
 	// check domain
-	var url = new URL(link);
-	return {
-		status: pdCheckDomain(list, link, url.hostname, type),
-		mode: "link"
+	try {
+		let url = new URL(link);
+		return {
+			status: pdCheckDomain(list, link, url.hostname, type),
+			mode: "link"
+		}
 	}
+	catch(e) {
+		pdLogger.error("check link: " + e);
+	}
+	return null;
 }
 
 // check MIME part of the email
@@ -431,6 +448,9 @@ function pdCheckMIMEPart(list, part, rc, skip) {
 	// shared code to process links
 	var processLink = function(link,rc) {
 		var res = pdCheckLink(list, link, "email_link");
+		if (res === null) {
+			return;
+		}
 		switch (res.mode) {
 		case "email":
 			rc.totalEmail++;
@@ -471,6 +491,12 @@ function pdCheckMIMEPart(list, part, rc, skip) {
 // process a MIME message object
 function pdInspectEMail(email) {
 	pdLogger.debug("inspectEMail(): " + email.headers.from);
+	
+	// check for "real" email (and not a draft)
+	if (email.headers["message-id"] === undefined) {
+		pdLogger.log("Skipping unsent email (no message id)");
+		return null;
+	}
 	
 	// compile a list of incidents
 	var tagList = new pdTagList();
@@ -557,6 +583,9 @@ function pdInspectEMail(email) {
 	var label = "From " + email.headers.from + " (" + email.headers.date + ")";
 	var emailId = pdDatabase.getEmailId(email.headers["message-id"][0], label);
 	pdLogger.debug("email id: " + emailId);
+	if (emailId == 0) {
+		return null;
+	}
 
 	// insert tags into the database.
 	for (let i = 0; i < tagList.data.length; i++) {

@@ -148,6 +148,12 @@ intervention is necessary. You can force a (re-)check of emails by opening
 the context menu (right-click) for either an email folder or a single email
 and selecting the scan/check function.
 
+N.B.: If you scan all emails in a folder the extension will process around
+five messages per second (rate limited) to make sure the user interface of
+Thunderbird is still usable and reasonably responsive. If you encounter
+problems here, please let me know. Folder with a lot of emails will take
+a long time to be processed (~15000 emails per hour).
+
 If you have enabled thePhishDetect column, you will be able to identify
 detected emails at first glance.
 
@@ -194,8 +200,8 @@ identify problems...
 
 The extension will create and use a SQLite database `pishdetect.sqlite` in the
 profile folder. **BEWARE**: The table schemas may change from commit to commit, so
-if you are running an older version of the extension, it might be necessary to
-remove the old database file before starting Thunderbird with the new version of
+if you are running an older version of the extension, it might be **necessary to
+remove the old database file** before starting Thunderbird with the new version of
 the extension. Consult the error log in the debugger console to check for errors.
 
 ## Testing

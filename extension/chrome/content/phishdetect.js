@@ -37,7 +37,9 @@ function pdCheckMessage(aMsgHdr, aCallback) {
 		// evaluate body by PhishDetect engine.
 		let rc = pdInspectEMail(aMimeMsg);
 		// callback to invoker
-		aCallback(aMsgHdr, rc);
+		if (rc !== null) {
+			aCallback(aMsgHdr, rc);
+		}
 	};
 	// get message in MIME format
 	MsgHdrToMimeMessage (aMsgHdr, null, cb, true, {
@@ -54,8 +56,8 @@ function pdScanEmail() {
 	pdStatusMsg('Evaluating email...');
 	var hdr = gFolderDisplay.selectedMessage;
 	pdCheckMessage(hdr, function(aMsgHdr, aRC) {
-		// set message header to reflect detection status
-		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
+		// set message flag to reflect detection status
+		pdSetMsgFlag(aMsgHdr, aRC);
 		pdStatusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
 		// TODO: update rendering of message
 	});
@@ -77,11 +79,11 @@ function pdScanFolder() {
 	var count = folder.getTotalMessages(false);
 	var pos = 1;
 	var flagged = 0;
-
+	
 	// callback for check function
 	var cb = function(aMsgHdr, aRC) {
 		// set message header to reflect detection status
-		aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
+		pdSetMsgFlag(aMsgHdr, aRC);
 		if (aRC.phish) {
 			flagged++;
 		}
@@ -90,17 +92,21 @@ function pdScanFolder() {
 		pos++;
 		// TODO: update rendering of message 
 	}
-	// process all messages
-	while (msgArray.hasMoreElements()) {
-		// evaluate email content
-		let msgHdr = msgArray.getNext().QueryInterface(Components.interfaces.nsIMsgDBHdr);
-		pdCheckMessage(msgHdr, cb);
-	}
+
+	// process all message headers
+	var loop = setInterval(function(){
+		if (msgArray.hasMoreElements()) {
+			let hdr = msgArray.getNext().QueryInterface(Ci.nsIMsgDBHdr);
+			pdCheckMessage(hdr, cb);
+		} else {
+			clearInterval(loop);
+		}
+	}, 200);
 }
 
 // get PhishDetect header object
 function pdGetPhishDetectStatus(aMsgHdr) {
-	var field = aMsgHdr.getStringProperty("X-Custom-PhishDetect");
+	var field = pdGetMsgFlag(aMsgHdr);
 	if (field === null || field.length === 0) {
 		return null;
 	}
@@ -120,13 +126,12 @@ function pdCheckForPhish(aMsgHdr) {
  * Filter incoming emails
  *****************************************************************************/
 
-// Callback for incoming emails: Evaluate message body and add a new header
-// attribute 'X-Custom-PhishDetect' to record email status.
+// Callback for incoming emails: Evaluate message body and record email status.
 var pdNewMailListener = {
 	msgAdded: function(aMsgHdr) {
 		if (!aMsgHdr.isRead) {
 			pdCheckMessage(aMsgHdr, function(aMsgHdr, aRC) {
-				aMsgHdr.setStringProperty("X-Custom-PhishDetect", JSON.stringify(aRC));
+				pdSetMsgFlag(aMsgHdr, aRC);
 			});
 		}
 	}
