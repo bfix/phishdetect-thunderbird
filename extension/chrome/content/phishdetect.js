@@ -221,7 +221,7 @@ function pdSyncWithNode() {
 		}
 		if (out.length > 0) {
 			pdStatusMsg(out);
-			pdLogger.log(out);
+			pdLogger.info(out);
 		}
 	});
 }
@@ -265,7 +265,7 @@ function pdTaskScheduler() {
 		let num = pdSendReport(null, pdPrefs.reports_context, null);
 		let msg = (num > 0 ? num + " pending incident reports sent." : "No incidents to be reported.");
 		pdStatusMsg(msg);
-		pdLogger.log(msg);
+		pdLogger.info(msg);
 	}	
 }	
 

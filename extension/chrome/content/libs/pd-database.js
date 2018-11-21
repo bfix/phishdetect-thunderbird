@@ -181,7 +181,7 @@ var pdDatabase = {
 		}
 		finally {
 			if (stmt !== null) {
-				pdLogger.log("recordIncident(" + tagId + ")");
+				pdLogger.debug("recordIncident(" + tagId + ")");
 				stmt.reset();
 			}
 		}

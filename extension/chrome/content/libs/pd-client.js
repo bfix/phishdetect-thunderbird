@@ -274,7 +274,7 @@ function pdSendReport(pending, withContext, final) {
 					continue;
 				}
 				// flag incident as reported in database
-				pdLogger.log("Incident #" + pending[i].id + " reported.");
+				pdLogger.info("Incident #" + pending[i].id + " reported.");
 				pdDatabase.setReported(pending[i].id, 1);
 			}
 		}, error => {
