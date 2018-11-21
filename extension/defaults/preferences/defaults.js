@@ -10,4 +10,4 @@ pref("extensions.phishdetect.reports_contact", "anonymous");
 pref("extensions.phishdetect.test", true);
 pref("extensions.phishdetect.test_rate", 20);
 pref("extensions.phishdetect.test_report", false);
-pref("extensions.phishdetect.debug", true);
+pref("extensions.phishdetect.log_level", 2);

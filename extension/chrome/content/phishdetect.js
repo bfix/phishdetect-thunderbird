@@ -228,13 +228,13 @@ function pdSyncWithNode() {
 
 // get timestamp of last node sync
 function pdGetLastSync() {
-	var v = pdGetPrefInt('node_sync_last');
+	var v = pdPrefs.node_sync_last;
 	return pdGetElapsedTime(v);
 }
 
 //get timestamp of last report
 function pdGetLastReport() {
-	var v = pdGetPrefInt('reports_last');
+	var v = pdPrefs.reports_last;
 	return pdGetElapsedTime(v);
 }
 
@@ -244,11 +244,11 @@ function pdTaskScheduler() {
 	pdLogger.debug("taskScheduler(" + now + "):");
 
 	// get last sync timestamps and intervals
-	var lastNodeSync = pdGetPrefInt('node_sync_last');
+	var lastNodeSync = pdPrefs.node_sync_last;
 	pdLogger.debug("=> last node sync: " + lastNodeSync);
-	var nodeSyncInterval = pdGetPrefInt('node_sync') * 60; // minutes
+	var nodeSyncInterval = pdPrefs.node_sync * 60; // minutes
 	pdLogger.debug("=> node sync interval: " + nodeSyncInterval);
-	var lastReportSync = pdGetPrefInt('reports_last');
+	var lastReportSync = pdPrefs.reports_last;
 	pdLogger.debug("=> last report sync: " + lastReportSync);
 	var reportSyncInterval = 3600; // every hour
 	
@@ -262,7 +262,7 @@ function pdTaskScheduler() {
 	if (reportSyncInterval > 0 && now > (lastReportSync + reportSyncInterval)) {
 		// send pending incidents
 		pdStatusMsg("Sending pending incident reports...");
-		let num = pdSendReport(null, pdGetPrefBool('reports_context'), null);
+		let num = pdSendReport(null, pdPrefs.reports_context, null);
 		let msg = (num > 0 ? num + " pending incident reports sent." : "No incidents to be reported.");
 		pdStatusMsg(msg);
 		pdLogger.log(msg);

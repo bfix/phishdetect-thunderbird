@@ -70,7 +70,7 @@ function pdContextCheckLink(event) {
 
 //open reporting dialog (if reports is enabled)
 function pdManageReport() {
-	if (pdGetPrefBool('reports')) {
+	if (pdPrefs.reports) {
 		toOpenWindowByType('phishdetect:reports', 'chrome://phishdetect/content/pd-reports.xul');
 	} else {
 		alert("Reporting disabled in preferences");

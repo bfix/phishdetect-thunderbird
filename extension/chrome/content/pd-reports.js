@@ -32,7 +32,7 @@ var pdReportsSending = false;
 function pdReportsOnLoad() {
 
 	// set date of last reporting
-	var v = pdGetPrefInt('reports_last');
+	var v = pdPrefs.reports_last;
 	var msg = pdGetElapsedTime(v);
 	document.getElementById("pd-dlg-reports-last").value = msg; 
 
@@ -76,8 +76,8 @@ function pdReportsOnLoad() {
 	};
   
 	// set reporter (user identifier)
-	document.getElementById("pd-dlg-reports-user").value = pdGetPrefString('reports_contact'); 
-	document.getElementById("pd-dlg-reports-context").checked = pdGetPrefBool('reports_context'); 
+	document.getElementById("pd-dlg-reports-user").value = pdPrefs.reports_contact; 
+	document.getElementById("pd-dlg-reports-context").checked = pdPrefs.reports_context; 
 }
 
 // dialog is closed

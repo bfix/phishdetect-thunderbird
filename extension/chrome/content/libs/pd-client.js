@@ -26,50 +26,89 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+// import modules
 Cu.import("resource://gre/modules/Services.jsm");
 
+// initialize common services
 var pdDlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
+
+
+/*****************************************************************************
+ * Preferences (key/value pairs of settings):
+ *   All default/user settings for extension preferences are stored as
+ *   attributes in this instance.
+ *****************************************************************************/
+
+var pdPrefs = {
+	// access to extension preferences
+	srvc: null,
+	// preferences are added as attributes
+	// :
+
+	// observer for changes in preferences
+	observe: function(subj, topic, key) {
+		this._setKey(key);
+	},
+	
+	// initialize preferences services and get values
+	init: function() {
+		this.srvc = Services.prefs.getBranch("extensions.phishdetect.");
+		let keys = this.srvc.getChildList("", null);
+		keys.forEach(key => {
+			this._setKey(key);
+		});
+		this.srvc.addObserver("", this, false);
+	},
+
+	// set/update a preference.
+	_setKey: function(key) {
+		switch (this.srvc.getPrefType(key)) {
+		case PREF_STRING:
+			this[key] = this.srvcs.getCharPref(key);
+			break;
+		case PREF_INT:
+			this[key] = this.srvcs.getIntPref(key);
+			break;
+		case PREF_BOOL:
+			this[key] = this.srvcs.getCharPref(key);
+			break;
+		default:
+		}
+	}
+}
 
 
 /*****************************************************************************
  * Logger
  *****************************************************************************/
 
+// log a message to the console depending on its type and the currently set
+// "log level" to: 0 = debug, 1 = log, 2 = info, 3 = warning, 4 = error. 
 var pdLogger = {
-	log: function(msg) { console.log("PhishDetect: " + msg); },
+	// log a typed message
+	debug: function(msg) { if (pdPrefs.log_level < 1) console.debug("PhishDetect: " + msg); },
+	log: function(msg) { if (pdPrefs.log_level < 2) console.log("PhishDetect: " + msg); },
+	info: function(msg) { if (pdPrefs.log_level < 3) console.info("PhishDetect: " + msg); },
+	warn: function(msg) { if (pdPrefs.log_level < 4) console.warn("PhishDetect: " + msg); },
 	error: function(msg) { console.error("PhishDetect: " + msg); },
-	warn: function(msg) { console.warn("PhishDetect: " + msg); },
-	info: function(msg) { console.info("PhishDetect: " + msg); },
-	debug: function(msg) {
-		if (pdGetPrefBool('debug')) {
-			console.debug("PhishDetect: " + msg);
-		}
-	}
+	
+	// initialize logger
+	init: function(){}
 }
 
+
 /*****************************************************************************
- * Database handling
+ * Initialize extension
  *****************************************************************************/
 
-//initialize database
-function pdInitDatabase() {
+function pdInit() {
+	// initialize preferences
+	pdPrefs.init();
+	// initialize database
 	pdDatabase.init();
+	// initialize logger
+	pdLogger.init();
 }
-
-/*****************************************************************************
- * Preferences (key/value pairs of options)
- *****************************************************************************/
-
-// Get the PhishDetect preferences branch
-var pdPrefs = Services.prefs.getBranch("extensions.phishdetect.");
-
-// Get a preference value for a given key.
-// Setter methods are not provided; changes are made by the
-// user in the "Preferences" dialog.
-function pdGetPrefString(key) { return pdPrefs.getCharPref(key); }
-function pdGetPrefInt(key)    { return pdPrefs.getIntPref(key); }
-function pdGetPrefBool(key)   { return pdPrefs.getBoolPref(key); }
-
 
 /*****************************************************************************
  * Node message exchange
@@ -96,7 +135,7 @@ function pdSendRequest(uri, method, req) {
 			prop.headers = { "Content-Type": "application/json" };
 		}
 	}
-	var url = pdGetPrefString("node_url") + uri;
+	var url = pdPrefs.node_url + uri;
 	return fetch(url, prop);
 }
 
@@ -181,8 +220,8 @@ function pdSendReport(pending, withContext, final) {
 		pending = pdDatabase.getIncidents(true);
 	}
 	// get report settings
-	var user = pdGetPrefString('reports_contact');
-	var withTest = pdGetPrefBool('test') && pdGetPrefBool('test_report');
+	var user = pdPrefs.reports_contact;
+	var withTest = pdPrefs.test && pdPrefs.test_report;
 	
 	// send all incidents and flag them reported in database
 	var tasks = [];
@@ -600,8 +639,8 @@ function pdInspectEMail(email) {
 	}
 	
 	// TEST mode: The demo incidents are not recorded and reported.
-	if (pdGetPrefBool("test") && list.length == 0) {
-		let rate = pdGetPrefInt("test_rate") / 100;
+	if (pdPrefs.test && list.length == 0) {
+		let rate = pdPrefs.test_rate / 100;
 		if (Math.random() < rate) {
 			list.push("DEMO modus -- not based on detection!");
 		}
