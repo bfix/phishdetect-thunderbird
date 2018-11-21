@@ -431,7 +431,12 @@ function pdCheckLink(list, link, type) {
 			status: pdCheckEmailAddress(list, link.substring(7), type + "_mailto"),
 			mode: "email"
 		}
-	}	
+	}
+	// check for javascript attempts
+	else if (link.startsWith("javascript:")) {
+		pdLogger.info("JavaScript link: " + link);
+		return null;
+	}
 	// check domain
 	try {
 		// make sure there is a protocol defined (defaults to 'http://')
@@ -446,7 +451,7 @@ function pdCheckLink(list, link, type) {
 		}
 	}
 	catch(e) {
-		pdLogger.error("checkLink('" + link + "') => " + e);
+		pdLogger.info("checkLink('" + link + "') => " + e);
 	}
 	return null;
 }
