@@ -55,7 +55,8 @@ var pdPrefs = {
 	// initialize preferences services and get values
 	init: function() {
 		this.srvc = Services.prefs.getBranch("extensions.phishdetect.");
-		this.keys = this.srvc.getChildList("", null);
+		var rc = { value: 0 };
+		this.keys = this.srvc.getChildList("", rc);
 		this.keys.forEach(key => {
 			this._setKey(key);
 		});
@@ -65,20 +66,20 @@ var pdPrefs = {
 	// set an integer preference
 	setInt: function(key,value) {
 		this[key] = value;
-		this.srvcs.setIntPref(key, value);
+		this.srvc.setIntPref(key, value);
 	},
 
 	// set/update a preference.
 	_setKey: function(key) {
 		switch (this.srvc.getPrefType(key)) {
-		case PREF_STRING:
-			this[key] = this.srvcs.getCharPref(key);
+		case 32: // PREF_STRING
+			this[key] = this.srvc.getCharPref(key);
 			break;
-		case PREF_INT:
-			this[key] = this.srvcs.getIntPref(key);
+		case 64: // PREF_INT
+			this[key] = this.srvc.getIntPref(key);
 			break;
-		case PREF_BOOL:
-			this[key] = this.srvcs.getCharPref(key);
+		case 128: // PREF_BOOL
+			this[key] = this.srvc.getBoolPref(key);
 			break;
 		default:
 		}
@@ -163,6 +164,8 @@ function pdSendRequest(uri, method, req) {
 	
 // fetch latest indicators
 function pdFetchIndicators(callback) {
+	var now = Math.floor(Date.now() / 1000);
+	pdPrefs.setInt('node_sync_last_try', now);
 	pdSendRequest("/api/indicators/fetch/?last=" + pdPrefs.node_sync_last, "GET", null)
 		.then(response => response.json())
 		.then(rc => {
@@ -182,7 +185,7 @@ function pdFetchIndicators(callback) {
 			pdDatabase.addIndicators(rc.emails, 2, callback);
 			
 			// update timestamp in preferences
-			pdPrefs.setInt('node_sync_last', Math.floor(Date.now() / 1000));
+			pdPrefs.setInt('node_sync_last', now);
 		})
 		// external failure
 		.catch(error => {
@@ -252,9 +255,12 @@ function pdSendReport(pending, withContext, final) {
 		count++;
 	}
 	// record last report date
+	var now = Math.floor(Date.now() / 1000);
 	if (tasks.length > 0) {
-		pdPrefs.setInt('reports_last', Math.floor(Date.now() / 1000));
+		pdPrefs.setInt('reports_last', now);
 	}
+	pdPrefs.setInt('reports_last_try', now);
+
 	// wait for all requests to finish.
 	var failed = false;
 	Promise.all(tasks)
@@ -333,7 +339,13 @@ function pdGetMsgFlag(aMsgHdr) {
 var pdTagList = function() {
 	this.data = [];
 	this.insert = function(full, raw, type) {
-		var check = pdCheckForIndicator(raw);
+		var check = null;
+		try {
+			check = pdCheckForIndicator(raw);
+		} catch(e) {
+			pdLogger.error("check indicator('" + full + "','" + raw + "'," + type + ")");
+			return false;
+		}
 		this.data.push({
 			full: full,
 			raw: raw,
@@ -342,8 +354,8 @@ var pdTagList = function() {
 			type: type
 		});
 		pdLogger.debug(
-			"*** pdTagList.insert(): pdCheckForIndicator() => " + JSON.stringify(check) +
-			" [" + this.data.length + "]"
+			"pdTagList.insert(): pdCheckForIndicator() => " +
+			JSON.stringify(check) +	" [" + this.data.length + "]"
 		);
 		return check.id != 0;
 	}
@@ -373,11 +385,15 @@ function pdCheckEmailAddress(list, addr, type) {
 		}
 		return rc;
 	}
+	// check for empty string
+	if (addr.length == 0) {
+		return false;
+	}
 	pdLogger.debug("checkEmailAddress(" + addr + ")");
 	// normalize email address
 	var reg = new RegExp("<([^>]*)", "gim");
 	var result;
-	while ((result = reg.exec(addr)) !== null) {
+	if ((result = reg.exec(addr)) !== null) {
 		addr = result[1];
 	}
 	pdLogger.debug("=> " + addr);
@@ -404,6 +420,10 @@ function pdCheckMailHop(list, hop) {
 
 // check link
 function pdCheckLink(list, link, type) {
+	// check for empty links
+	if (link === undefined || link === null || link.length == 0 || link.startsWith("#")) {
+		return null;
+	}
 	pdLogger.debug("checkLink(" + link + ")");
 	// check for email link
 	if (link.startsWith("mailto:")) {
@@ -414,6 +434,11 @@ function pdCheckLink(list, link, type) {
 	}	
 	// check domain
 	try {
+		// make sure there is a protocol defined (defaults to 'http://')
+		if (link.indexOf('://') == -1) {
+			link = 'http://' + link;
+		}
+		// check link and its full domain
 		let url = new URL(link);
 		return {
 			status: pdCheckDomain(list, link, url.hostname, type),
@@ -421,7 +446,7 @@ function pdCheckLink(list, link, type) {
 		}
 	}
 	catch(e) {
-		pdLogger.error("check link: " + e);
+		pdLogger.error("checkLink('" + link + "') => " + e);
 	}
 	return null;
 }
@@ -461,15 +486,15 @@ function pdCheckMIMEPart(list, part, rc, skip) {
 			}
 			return;
 		default:
-			pdLogger.log("Skipped MIME type: " + part.contentType);
+			pdLogger.debug("Skipped MIME type: " + part.contentType);
 			for (let i = 0; i < part.parts.length; i++) {
-				pdLogger.log("==> " + part.parts[i].contentType);
+				pdLogger.debug("==> " + part.parts[i].contentType);
 			}
 			break;
 	}
 	if (usePart === null || usePart.body === null || bodyType === null) {
 		if (!skip) {
-			pdLogger.error("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
+			pdLogger.info("checkMIMEPart(): no usable body content found for scanning: " + part.contentType);
 		}
 		return;
 	}
@@ -620,11 +645,13 @@ function pdInspectEMail(email) {
 	for (let i = 0; i < tagList.data.length; i++) {
 		let tag = tagList.data[i];
 		pdLogger.debug("Adding tag: " + tag);
-		// get the database id of the email tag
-		let tagId = pdDatabase.getTagId(emailId, tag.raw, tag.hash, tag.indicator, tag.type);
+		// get the database id of the tag
+		let tagId = pdDatabase.getTagId(tag.raw, tag.type, tag.hash, tag.indicator);
+		// get the database of the email_tag record
+		let emailTagId = pdDatabase.getEmailTagId(emailId, tagId);
 		// record incident if indicator found
 		if (tag.indicator != 0) {
-			pdDatabase.recordIncident(tagId);
+			pdDatabase.recordIncident(emailTagId);
 		}
 	}
 	

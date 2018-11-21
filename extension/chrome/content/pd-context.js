@@ -83,6 +83,14 @@ function pdShowPreferences() {
 	window.openDialog("chrome://phishdetect/content/pd-prefs.xul", "Preferences", features);
 }
 
+// show folder context menu
+function pdOnFolderContextShowing() {
+	var entry = document.getElementById('pd-context-folder');
+	if (!entry.disabled) {
+		entry.disabled = !pdIsMailFolder();
+	}
+}
+
 //check if the selected entry in the folder pane is a (non-empty) mail folder
 function pdIsMailFolder() {
 	var selFolders = gFolderTreeView.getSelectedFolders();

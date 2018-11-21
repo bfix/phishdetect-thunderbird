@@ -122,14 +122,12 @@ var pdDatabase = {
 		}
 	},
 	
-	// get the identifier of an email tag
-	getTagId: function(emailId, raw, hash, indicator, type, isRetry) {
+	// get the identifier of an tag
+	getTagId: function(raw, type, hash, indicator, isRetry) {
 		// check if the tag record exists. if so, return the id
 		var stmt = this.dbConn.createStatement(
-			"SELECT id FROM email_tags WHERE "+
-			"email = :email AND raw = :raw AND type = :type"
+			"SELECT id FROM tags WHERE raw = :raw AND type = :type"
 		);
-		stmt.params.email = emailId;
 		stmt.params.raw = raw;
 		stmt.params.type = type;
 		if (stmt.step()) {
@@ -137,39 +135,63 @@ var pdDatabase = {
 		}
 		// sanity check
 		if (isRetry !== undefined) {
-			pdLogger.error("getEmailId() recursion");
+			pdLogger.error("getTagId() recursion");
 			return 0;
 		}
 		// insert new record into the table
 		stmt = this.dbConn.createStatement(
-			"INSERT OR IGNORE INTO email_tags(email,type,raw,hash,indicator) "+
-			"VALUES(:email,:type,:raw,:hash,:indicator)"
+			"INSERT OR IGNORE INTO tags(raw,type,hash,indicator) "+
+			"VALUES(:raw,:type,:hash,:indicator)"
 		);
-		stmt.params.email = emailId;
-		stmt.params.type = type;
 		stmt.params.raw = raw;
+		stmt.params.type = type;
 		stmt.params.hash = hash;
 		stmt.params.indicator = indicator;
 		stmt.execute();
-		return this.getTagId(emailId, raw, hash, indicator, type, true);
+		return this.getTagId(raw, type, hash, indicator, true);
 	},
 
+	// get the identifier of an email tag
+	getEmailTagId: function(emailId, tagId, isRetry) {
+		// check if the email_tag record exists. if so, return the id
+		var stmt = this.dbConn.createStatement(
+			"SELECT id FROM email_tags WHERE email = :email AND tag = :tag"
+		);
+		stmt.params.email = emailId;
+		stmt.params.tag = tagId;
+		if (stmt.step()) {
+			return stmt.row.id;
+		}
+		// sanity check
+		if (isRetry !== undefined) {
+			pdLogger.error("getEmailTagId() recursion");
+			return 0;
+		}
+		// insert new record into the table
+		stmt = this.dbConn.createStatement(
+			"INSERT OR IGNORE INTO email_tags(email,tag) VALUES(:email,:tag)"
+		);
+		stmt.params.email = emailId;
+		stmt.params.tag = tagId;
+		stmt.execute();
+		return this.getEmailTagId(emailId, tagId, true);
+	},
+	
 	// record incident:
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
-	recordIncident: function(tagId) {
+	recordIncident: function(emailTagId) {
 		var stmt = null;
 		try {
 			stmt = this.dbConn.createStatement(
-				"INSERT OR IGNORE INTO incidents(timestamp,email_tag) VALUES(:ts,:tag)"
+				"INSERT OR IGNORE INTO incidents(timestamp,email_tag) VALUES(:ts,:email_tag)"
 			);
 			stmt.params.ts = Date.now();
-			stmt.params.tag = tagId;
+			stmt.params.email_tag = emailTagId;
 			stmt.execute();
 		}
 		catch(e) {
 			pdLogger.error(e);
-			stmt = null;
 		}
 		finally {
 			if (stmt !== null) {
@@ -182,21 +204,14 @@ var pdDatabase = {
 	// get incidents from database
 	getIncidents: function(unreported) {
 		// combine tables to retrieve records
-		var sql = "SELECT " +
-			"inc.id AS id," +
-			"inc.timestamp AS timestamp," +
-			"tag.raw AS raw," +
-			"ind.indicator AS indicator," +
-			"tag.type AS type," +
-			"ind.kind AS kind," +
-			"email.message_id AS context_id," +
-			"email.label AS context_label," +
-			"inc.reported AS reported " +
-			"FROM incidents inc, indicators ind, email_tags tag, emails email " +
-			"WHERE inc.email_tag = tag.id AND tag.email = email.id AND tag.indicator = ind.id";
+		var sql =
+			"SELECT "+
+				"id, timestamp, raw, type, indicator, kind, "+
+				"ctx_id, ctx_label, reported " +
+			"FROM v_incidents";
 		// restrict search for unreported incidents
 		if (unreported) {
-			sql += " AND inc.reported = 0";
+			sql += " WHERE reported = 0";
 		}
 		var stmt = this.dbConn.createStatement(sql);
 		// get records
@@ -241,6 +256,13 @@ var pdDatabase = {
 		this.initialized = true;
 		this.dbSchema = {
 			tables: {
+				// TABLE indicators
+				indicators:
+					"id         INTEGER PRIMARY KEY,"+
+					"indicator  VARCHAR(64) NOT NULL,"+
+					"kind       INTEGER DEFAULT 0,"+
+					"CONSTRAINT indicator_unique UNIQUE(indicator)",
+					
 				// TABLE emails
 				emails:
 					"id         INTEGER PRIMARY KEY,"+
@@ -249,23 +271,24 @@ var pdDatabase = {
 					"status     VARCHAR(1024) DEFAULT '',"+
 					"CONSTRAINT email_unique UNIQUE(message_id)",
 
-				// TABLE indicators
-				indicators:
+				// TABLE tags
+				tags:
 					"id         INTEGER PRIMARY KEY,"+
-					"indicator  VARCHAR(64) NOT NULL,"+
-					"kind       INTEGER DEFAULT 0,"+
-					"CONSTRAINT indicator_unique UNIQUE(indicator)",
+					"raw        VARCHAR(1024) NOT NULL,"+
+					"hash       VARCHAR(64),"+
+					"indicator  INTEGER DEFAULT NULL,"+
+					"type       VARCHAR(32) NOT NULL,"+
+					"CONSTRAINT tag_unique UNIQUE(raw,type),"+
+					"FOREIGN KEY(indicator) REFERENCES indicators(id)",
 					
 				// TABLE email_tags
 				email_tags:
 					"id         INTEGER PRIMARY KEY,"+
 					"email      INTEGER NOT NULL,"+
-					"raw        VARCHAR(1024) NOT NULL,"+
-					"hash       VARCHAR(64),"+
-					"indicator  INTEGER DEFAULT NULL,"+
-					"type       VARCHAR(32) NOT NULL,"+
+					"tag        INTEGER NOT NULL,"+
+					"CONSTRAINT email_tag_unique UNIQUE(email,tag),"+
 					"FOREIGN KEY(email) REFERENCES emails(id),"+
-					"FOREIGN KEY(indicator) REFERENCES indicators(id)",
+					"FOREIGN KEY(tag) REFERENCES tags(id)",
 					
 				// TABLE incidents
 				incidents:
@@ -275,6 +298,27 @@ var pdDatabase = {
 					"reported      INTEGER DEFAULT 0,"+
 					"FOREIGN KEY(email_tag) REFERENCES email_tags(id),"+
 					"CONSTRAINT incident_unique UNIQUE(email_tag)",
+			},
+			views: {
+				n_incidents:
+					"CREATE VIEW v_incidents AS SELECT " +
+						"inc.id AS id," +
+						"inc.timestamp AS timestamp," +
+						"tag.raw AS raw," +
+						"tag.type AS type," +
+						"ind.indicator AS indicator," +
+						"ind.kind AS kind," +
+						"email.message_id AS ctx_id," +
+						"email.label AS ctx_label," +
+						"inc.reported AS reported " +
+					"FROM "+
+						"incidents inc, indicators ind, tags tag, "+
+						"emails email, email_tags et " +
+					"WHERE "+
+						"inc.email_tag = et.id AND "+
+						"et.email = email.id AND "+
+						"et.tag = tag.id AND "+
+						"tag.indicator = ind.id"
 			}
 		};
 		
@@ -300,12 +344,19 @@ var pdDatabase = {
 	_dbCreate: function(aDBService, aDBFile) {
 		var dbConn = aDBService.openDatabase(aDBFile);
 		this._dbCreateTables(dbConn);
+		this._dbCreateViews(dbConn);
 		return dbConn;
 	},
 
 	_dbCreateTables: function(adbConn) {
 		for (let name in this.dbSchema.tables) {
 			adbConn.createTable(name, this.dbSchema.tables[name]);
+		}
+	},
+
+	_dbCreateViews: function(adbConn) {
+		for (let name in this.dbSchema.views) {
+			adbConn.executeSimpleSQL(this.dbSchema.views[name]);
 		}
 	},
 };

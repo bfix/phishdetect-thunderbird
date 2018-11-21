@@ -11,7 +11,7 @@
 			</menupopup>
 		</menu>
 	</popup>
-	<menupopup id="folderPaneContext" onpopupshowing="document.getElementById('pd-context-folder').disabled = !pdIsMailFolder();">
+	<menupopup id="folderPaneContext" onpopupshowing="pdOnFolderContextShowing();">
 		<menuitem id="pd-context-folder" class="menuitem-iconic" image="chrome://phishdetect/content/icon16.png"
 			label="Scan emails in folder" oncommand="pdScanFolder();"/>
 	</menupopup>

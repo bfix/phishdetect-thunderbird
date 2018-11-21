@@ -43,7 +43,7 @@ function pdCheckMessage(aMsgHdr, aCallback) {
 	};
 	// get message in MIME format
 	MsgHdrToMimeMessage (aMsgHdr, null, cb, true, {
-		partsOnDemand: false, examineEncryptedParts: true
+		partsOnDemand: false, examineEncryptedParts: false
 	});
 }
 
@@ -71,8 +71,11 @@ function pdScanFolder() {
 		alert("None or multiple folders selected - PhishDetect not run");
 		return;
 	}
-	var folder = selFolders[0];	
+	var folder = selFolders[0];
 	
+	// disable "scan folder" until done
+	document.getElementById('pd-context-folder').disabled = true;
+
 	// check all emails in folder (not recursive!)
 	// and count suspicious emails detected
 	var msgArray = folder.messages;
@@ -88,7 +91,7 @@ function pdScanFolder() {
 			flagged++;
 		}
 		// status feedback
-		pdStatusMsg('Evaluated ' + pos + ' of ' + count + ' emails in folder: ' + flagged + ' suspicious.');
+		pdStatusMsg('Inspected ' + pos + ' of ' + count + ' emails in folder: ' + flagged + ' suspicious.');
 		pos++;
 		// TODO: update rendering of message 
 	}
@@ -99,9 +102,13 @@ function pdScanFolder() {
 			let hdr = msgArray.getNext().QueryInterface(Ci.nsIMsgDBHdr);
 			pdCheckMessage(hdr, cb);
 		} else {
+			// stop looping
 			clearInterval(loop);
+			// enable "scan folder" again
+			document.getElementById('pd-context-folder').disabled = false;
+			pdStatusMsg('Folder scan complete: ' + flagged + ' suspicious emails found.');
 		}
-	}, 200);
+	}, pdPrefs.node_scan_delay);
 }
 
 // get PhishDetect header object
@@ -244,11 +251,11 @@ function pdTaskScheduler() {
 	pdLogger.debug("taskScheduler(" + now + "):");
 
 	// get last sync timestamps and intervals
-	var lastNodeSync = pdPrefs.node_sync_last;
+	var lastNodeSync = pdPrefs.node_sync_last_try;
 	pdLogger.debug("=> last node sync: " + lastNodeSync);
 	var nodeSyncInterval = pdPrefs.node_sync * 60; // minutes
 	pdLogger.debug("=> node sync interval: " + nodeSyncInterval);
-	var lastReportSync = pdPrefs.reports_last;
+	var lastReportSync = pdPrefs.reports_last_try;
 	pdLogger.debug("=> last report sync: " + lastReportSync);
 	var reportSyncInterval = 3600; // every hour
 	
@@ -351,8 +358,8 @@ window.addEventListener("load", function load() {
 		messagePane.addEventListener("contextmenu", pdMailViewContext, true);
     }
 	
-    // Connect to (and initialize) database
-	pdInitDatabase();
+    // initialize extension core
+	pdInit();
 
 	// setup periodic scheduler for synchronization tasks (every minute)
 	setInterval(pdTaskScheduler, 60000);
