@@ -42,10 +42,12 @@ var pdDlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.ns
 var pdPrefs = {
 	// access to extension preferences
 	srvc: null,
+	// preference names
+	keys: null,
 	// preferences are added as attributes
 	// :
 
-	// observer for changes in preferences
+	// observer for changes in preferences branch
 	observe: function(subj, topic, key) {
 		this._setKey(key);
 	},
@@ -53,11 +55,17 @@ var pdPrefs = {
 	// initialize preferences services and get values
 	init: function() {
 		this.srvc = Services.prefs.getBranch("extensions.phishdetect.");
-		let keys = this.srvc.getChildList("", null);
-		keys.forEach(key => {
+		this.keys = this.srvc.getChildList("", null);
+		this.keys.forEach(key => {
 			this._setKey(key);
 		});
 		this.srvc.addObserver("", this, false);
+	},
+	
+	// set an integer preference
+	setInt: function(key,value) {
+		this[key] = value;
+		this.srvcs.setIntPref(key, value);
 	},
 
 	// set/update a preference.
@@ -79,11 +87,17 @@ var pdPrefs = {
 
 
 /*****************************************************************************
- * Logger
+ * Logger:
+ *   Logs mesage to the console (with corresponding type) if the
+ *   appropriate log_level is set:
+ *   0 = debug, 1 = log, 2 = info, 3 = warning, 4 = error
  *****************************************************************************/
 
-// log a message to the console depending on its type and the currently set
-// "log level" to: 0 = debug, 1 = log, 2 = info, 3 = warning, 4 = error. 
+// log a message to the console depending on its type and depending on the
+// currently set "log level" in the preferences. it does not rely on the
+// built-in message filtering to avoid polluting the internal message store.
+// TODO: contemplate the possibility to log into a separate database, so that
+// logs could be store persistently and processed by external applications.
 var pdLogger = {
 	// log a typed message
 	debug: function(msg) { if (pdPrefs.log_level < 1) console.debug("PhishDetect: " + msg); },
@@ -99,8 +113,11 @@ var pdLogger = {
 
 /*****************************************************************************
  * Initialize extension
+ *   N.B.: The sequence of init() calls should be done in respect to
+ *   the dependencies of the initialized objects / services.
  *****************************************************************************/
 
+// @returns void
 function pdInit() {
 	// initialize preferences
 	pdPrefs.init();
@@ -122,7 +139,7 @@ function pdSendRequest(uri, method, req) {
 	};
 	if (req !== null) {
 		prop.body = req;
-		pdLogger.debug("sendRequest(): request type = " + (typeof req));
+		pdLogger.debug("sendRequest(): " + req);
 		switch (typeof req) {
 		case 'FormData':
 			// prop.headers = { "Content-Type": "multipart/form-data" };
@@ -146,10 +163,10 @@ function pdSendRequest(uri, method, req) {
 	
 // fetch latest indicators
 function pdFetchIndicators(callback) {
-	pdSendRequest("/api/indicators/fetch/", "GET", null)
+	pdSendRequest("/api/indicators/fetch/?last=" + pdPrefs.node_sync_last, "GET", null)
 		.then(response => response.json())
 		.then(rc => {
-			// check for errors
+			// check for internal errors
 			if (rc.error !== undefined) {
 				logger.error('Fetch failed: ' + rc.error);
 				dlgPrompt.alert(null, "Fetch Indicators",
@@ -160,19 +177,14 @@ function pdFetchIndicators(callback) {
 					"If the problem persists, contact your node operator.");
 				return;
 			}
-			// TODO: until there is a mechanism to fetch only indicators we
-			// haven't seen yet, we have to drop the 'indicators' table every
-			// time we start-up. This is wasting bandwidth and time!
-			// this keeps test indicators (kind == 0)
-			pdDatabase.executeSimpleSQL("DELETE FROM indicators WHERE kind <> 0");
-			
 			// add indicators to database
 			pdDatabase.addIndicators(rc.domains, 1, callback);
 			pdDatabase.addIndicators(rc.emails, 2, callback);
 			
 			// update timestamp in preferences
-			pdPrefs.setIntPref('node_sync_last', Math.floor(Date.now() / 1000));
+			pdPrefs.setInt('node_sync_last', Math.floor(Date.now() / 1000));
 		})
+		// external failure
 		.catch(error => {
 			pdDlgPrompt.alert(null, "Node Synchronization",
 				"Fetching new indicators from the back-end node failed:\n\n" +
@@ -183,8 +195,7 @@ function pdFetchIndicators(callback) {
 }
 
 // check if a string is contained in the list of indicators.
-// provide a context (string, max 255 chars) to identify where
-// the indicator was detected (URL, MessageID,...)
+// @returns the hash of the string and the database id
 function pdCheckForIndicator(raw) {
 	pdLogger.debug("==> checkForIndicator(" + raw + ")");
 	// create entry for lookup
@@ -196,14 +207,9 @@ function pdCheckForIndicator(raw) {
 	// pdLogger.log('("' + indicator + '"),|' + raw);
 
 	// check if the indicator is listed.
-	var result = pdDatabase.hasIndicator(indicator);
-	var rc = { indicator: indicator, ids: [] };
-	for (let i = 0; i < result.length; i++) {
-		rc.ids.push(result[i].id);
-	}
-	return rc;
+	var id = pdDatabase.hasIndicator(indicator);
+	return { indicator: indicator, id: id };
 }
-
 
 /*****************************************************************************
  * Incident report related functions
@@ -247,7 +253,7 @@ function pdSendReport(pending, withContext, final) {
 	}
 	// record last report date
 	if (tasks.length > 0) {
-		pdPrefs.setIntPref('reports_last', Math.floor(Date.now() / 1000));
+		pdPrefs.setInt('reports_last', Math.floor(Date.now() / 1000));
 	}
 	// wait for all requests to finish.
 	var failed = false;
@@ -327,35 +333,19 @@ function pdGetMsgFlag(aMsgHdr) {
 var pdTagList = function() {
 	this.data = [];
 	this.insert = function(full, raw, type) {
-		var rc = pdCheckForIndicator(raw);
-		var found = false;
-		if (rc.ids.length > 0) {
-			found = true;
-			for (let i = 0; i < rc.ids.length; i++) {
-				this.data.push({
-					full: full,
-					raw: raw,
-					hash: rc.indicator,
-					indicator: rc.ids[i],
-					type: type
-				});
-			}
-		} else {
-			// tag without a reference in the indicator table
-			found = false;
-			this.data.push({
-				full: full,
-				raw: raw,
-				hash: rc.indicator,
-				indicator: 0,
-				type: type
-			});
-		}
+		var check = pdCheckForIndicator(raw);
+		this.data.push({
+			full: full,
+			raw: raw,
+			hash: check.indicator,
+			indicator: check.id,
+			type: type
+		});
 		pdLogger.debug(
-			"*** pdTagList.insert(): pdCheckForIndicator() => " + JSON.stringify(rc) +
-			" {" + found + "} [" + this.data.length + "]"
+			"*** pdTagList.insert(): pdCheckForIndicator() => " + JSON.stringify(check) +
+			" [" + this.data.length + "]"
 		);
-		return found;
+		return check.id != 0;
 	}
 };
 

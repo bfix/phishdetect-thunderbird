@@ -57,24 +57,16 @@ var pdDatabase = {
 	},
 	
 	// check if an indicator exists in the database:
-	// returns a list of occurrences (same indicator for different kinds like
-	// domain, emails,...) or an empty list if the indicator is not found.
+	// @returns {int} database id (or 0 if not found)
 	hasIndicator: function(indicator) {
 		var stmt = this.dbConn.createStatement(
 			"SELECT id,kind FROM indicators WHERE indicator = :indicator"
 		);
-		try {
-			stmt.params.indicator = indicator;
-			let result = [];
-			while (stmt.executeStep()) {
-				result.push({ id:stmt.row.id, kind: stmt.row.kind });
-			}
-			return result;
+		stmt.params.indicator = indicator;
+		if (stmt.step()) {
+			return stmt.row.id;
 		}
-		finally {
-			stmt.reset();
-		}
-		return null;
+		return 0;
 	},
 	
 	// get the PhishDetect status of an email
@@ -262,7 +254,7 @@ var pdDatabase = {
 					"id         INTEGER PRIMARY KEY,"+
 					"indicator  VARCHAR(64) NOT NULL,"+
 					"kind       INTEGER DEFAULT 0,"+
-					"CONSTRAINT indicator_unique UNIQUE(indicator,kind)",
+					"CONSTRAINT indicator_unique UNIQUE(indicator)",
 					
 				// TABLE email_tags
 				email_tags:
