@@ -58,7 +58,7 @@ function pdReportsOnLoad() {
 						return ts.toLocaleDateString() + " " + ts.toLocaleTimeString();
 					}
 					case 'indicator': return pdReportsPending[row].raw;
-					case 'context': return pdReportsPending[row].context.label;
+					case 'context': return pdReportsPending[row].context;
 				}
 			},
 			setTree: function(treebox){ this.treebox = treebox; },

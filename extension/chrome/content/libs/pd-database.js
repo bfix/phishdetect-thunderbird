@@ -76,29 +76,47 @@ var pdDatabase = {
 		);
 		stmt.params.msgid = msgId;
 		if (!stmt.step()) {
+			// no record found
+			pdLogger.debug("getEmailStatus(" + msgId + "): null");
 			return null;
 		}
+		// status not set yet
+		if (stmt.row.status === null) {
+			pdLogger.debug("getEmailStatus(" + msgId + "): {}");
+			return {};
+		}
+		pdLogger.debug("getEmailStatus(" + msgId + "): " + stmt.row.status);
 		return JSON.parse(stmt.row.status);
 	},
 	
 	// set the PhishDetect status of an email
-	setEmailStatus: function(msgId,stat) {
-		var stmt = this.dbConn.createStatement(
-			"UPDATE emails SET status = :status WHERE message_id = :msgid"
-		);
+	// TODO: make SQL work
+	setEmailStatus: function(msgId, stat) {
+		var stmt = null;
+		if (this.getEmailStatus(msgId) === null) {
+			pdLogger.debug("setEmailStatus(" + msgId + ") -- insert: " + status);
+			stmt = this.dbConn.createStatement(
+				"INSERT INTO emails (message_id,status) VALUES(:msgid,:status)"
+			);
+		} else {
+			pdLogger.debug("setEmailStatus(" + msgId + ") -- update: " + status);
+			stmt = this.dbConn.createStatement(
+				"UPDATE emails SET status = :status WHERE message_id = :msgid"
+			);
+		}
 		stmt.params.msgid = msgId;
 		stmt.params.status = JSON.stringify(stat);
-		return stmt.step();
+		return stmt.execute();
 	},
 
 	// returns the database identifier for an email
-	getEmailId: function(id, label, isRetry) {
+	getEmailId: function(msgId, isRetry) {
 		try {
 			// check if the email record exists. if so, return the id
 			var stmt = this.dbConn.createStatement(
 				"SELECT id FROM emails WHERE message_id = :msgid"
 			);
-			stmt.params.msgid = id;
+			stmt.params.msgid = msgId;
 			if (stmt.step()) {
 				return stmt.row.id;
 			}
@@ -109,12 +127,11 @@ var pdDatabase = {
 			}
 			// insert new record into the table
 			stmt = this.dbConn.createStatement(
-				"INSERT OR IGNORE INTO emails(message_id,label) VALUES(:msgid,:label)"
+				"INSERT OR IGNORE INTO emails(message_id) VALUES(:msgid)"
 			);
-			stmt.params.msgid = id;
-			stmt.params.label = label;
+			stmt.params.msgid = msgId;
 			stmt.execute();
-			return this.getEmailId(id, label, true);
+			return this.getEmailId(msgId, true);
 		}
 		catch(e) {
 			pdLogger.error("getEmailId() failed: " + e);
@@ -184,14 +201,15 @@ var pdDatabase = {
 		var stmt = null;
 		try {
 			stmt = this.dbConn.createStatement(
-				"INSERT OR IGNORE INTO incidents(timestamp,email_tag) VALUES(:ts,:email_tag)"
+				"INSERT OR IGNORE INTO incidents(timestamp,email_tag) " +
+				"VALUES(:ts,:email_tag)"
 			);
 			stmt.params.ts = Date.now();
 			stmt.params.email_tag = emailTagId;
 			stmt.execute();
 		}
 		catch(e) {
-			pdLogger.error(e);
+			pdLogger.error("recordIncident(): " + e);
 		}
 		finally {
 			if (stmt !== null) {
@@ -206,8 +224,7 @@ var pdDatabase = {
 		// combine tables to retrieve records
 		var sql =
 			"SELECT "+
-				"id, timestamp, raw, type, indicator, kind, "+
-				"ctx_id, ctx_label, reported " +
+				"id, timestamp, raw, type, indicator, kind, context, reported " +
 			"FROM v_incidents";
 		// restrict search for unreported incidents
 		if (unreported) {
@@ -225,8 +242,7 @@ var pdDatabase = {
 					indicator: stmt.row.indicator,
 					type: stmt.row.type,
 					kind: stmt.row.kind,
-					context_id: stmt.row.context_id,
-					context_label: stmt.row.context_label
+					context: stmt.row.context,
 				});
 			}
 		}
@@ -267,8 +283,7 @@ var pdDatabase = {
 				emails:
 					"id         INTEGER PRIMARY KEY,"+
 					"message_id VARCHAR(255) NOT NULL,"+
-					"label      VARCHAR(255) NOT NULL,"+
-					"status     VARCHAR(1024) DEFAULT '',"+
+					"status     VARCHAR(1024) DEFAULT NULL,"+
 					"CONSTRAINT email_unique UNIQUE(message_id)",
 
 				// TABLE tags
@@ -308,8 +323,7 @@ var pdDatabase = {
 						"tag.type AS type," +
 						"ind.indicator AS indicator," +
 						"ind.kind AS kind," +
-						"email.message_id AS ctx_id," +
-						"email.label AS ctx_label," +
+						"email.message_id AS context," +
 						"inc.reported AS reported " +
 					"FROM "+
 						"incidents inc, indicators ind, tags tag, "+

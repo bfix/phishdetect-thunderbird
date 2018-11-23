@@ -35,7 +35,7 @@ function pdCheckMessage(aMsgHdr, aCallback) {
 	// callback for MIME reader
 	var cb = function (aMsgHdr, aMimeMsg) {
 		// evaluate body by PhishDetect engine.
-		let rc = pdInspectEMail(aMimeMsg);
+		let rc = pdInspectEMail(aMsgHdr, aMimeMsg);
 		// callback to invoker
 		if (rc !== null) {
 			aCallback(aMsgHdr, rc);
@@ -111,18 +111,9 @@ function pdScanFolder() {
 	}, pdPrefs.node_scan_delay);
 }
 
-// get PhishDetect header object
-function pdGetPhishDetectStatus(aMsgHdr) {
-	var field = pdGetMsgFlag(aMsgHdr);
-	if (field === null || field.length === 0) {
-		return null;
-	}
-	return JSON.parse(field);
-}
-
 // check if a header is flagged for 'phishing'
 function pdCheckForPhish(aMsgHdr) {
-	var rc = pdGetPhishDetectStatus(aMsgHdr);
+	var rc = pdGetMsgFlag(aMsgHdr);
 	if (rc === null) {
 		return false;
 	}
@@ -281,87 +272,120 @@ function pdTaskScheduler() {
  * Initialize the PhishDetect extension.
  *****************************************************************************/
 
-// Start PhishDetect extension when Thunderbird has loaded its main window.
-window.addEventListener("load", function load() {
-	// run only once...
-    window.removeEventListener("load", load, false);
-	
-	// add filter for incoming mails
-	var notificationService = Cc["@mozilla.org/messenger/msgnotificationservice;1"]
-		.getService(Ci.nsIMsgFolderNotificationService);
-	notificationService.addListener(pdNewMailListener, notificationService.msgAdded);
+// make sure we do all this just once...
+if (window.pdExtensionLoaded === undefined) {
+	window.pdExtensionLoaded = true;
+	window.pdScanning = null;
+	console.info("Extension loaded.");
 
-	// add custom column for PhishDetect in message list view
-	Services.obs.addObserver(pdObserver, "MsgCreateDBView", false);
-
-	// handle message display
-	var messagePane = GetMessagePane();
-	if (messagePane) {
-		// register PhishDetect callbacks:
+	// Start PhishDetect extension when Thunderbird has loaded its main window.
+	window.addEventListener("load", function load() {
+		// run only once...
+	    window.removeEventListener("load", load, false);
 		
-		// (1) message pane is loaded
-		messagePane.addEventListener("load", function(event) {
-			gMessageListeners.push({
-				onStartHeaders: function() {
-					// default is no PhishDetect notification bar
-					document.getElementById('pd-deck').collapsed = true;
-					pdShowDetails(true);
-					document.getElementById("pd-block").collapsed = false;
-					for (let i = 0; i < 6; i++) {
-						document.getElementById('pd-reason-'+i).collapsed = true;
-					}
-				},
-				onEndHeaders: function() {
-					// check if email is tagged by PhishDetect
-					var hdr = gFolderDisplay.selectedMessage;
-					var rc = pdGetPhishDetectStatus(hdr);
-					if (rc !== null && rc.phish) {
-						// set notification bar content
-						let ts = new Date(rc.date);
-						document.getElementById('pd-scan-date').innerHTML =
-							"Indications (found on " +
-							ts.toLocaleDateString() + " " +
-							ts.toLocaleTimeString() + "):";
-						for (let i = 0; i < rc.indications.length; i++) {
-							var txt = document.getElementById('pd-reason-'+i);
-							txt.innerHTML = rc.indications[i];
-							txt.collapsed = false;
+		// add filter for incoming mails
+		var notificationService = Cc["@mozilla.org/messenger/msgnotificationservice;1"]
+			.getService(Ci.nsIMsgFolderNotificationService);
+		notificationService.addListener(pdNewMailListener, notificationService.msgAdded);
+	
+		// add custom column for PhishDetect in message list view
+		Services.obs.addObserver(pdObserver, "MsgCreateDBView", false);
+	
+		// handle message display
+		var messagePane = GetMessagePane();
+		if (messagePane) {
+			// register PhishDetect callbacks:
+			
+			// (1) message pane is loaded
+			messagePane.addEventListener("load", function(event) {
+				gMessageListeners.push({
+					onStartHeaders: function() {
+						// default is no PhishDetect notification bar
+						document.getElementById('pd-deck').collapsed = true;
+						pdShowDetails(true);
+						document.getElementById("pd-block").collapsed = false;
+						for (let i = 0; i < 6; i++) {
+							document.getElementById('pd-reason-'+i).collapsed = true;
 						}
-						// show PhishDetect notification bar
-						document.getElementById('pd-deck').collapsed = false;
-					}
-				},
-				onStartAttachments: function() {},
-				onEndAttachments: function() {
-					// display sanitized attachments ?!
-				},
-				onBeforeShowHeaderPane: function() {}
-			});
-		}, true);
-		
-		// (2) close PhishDetect notification bar when message pane is unloaded
-		messagePane.addEventListener("unload", function(event) {
-			document.getElementById('pd-deck').collapsed = true;
-		}, true);
+					},
+					onEndHeaders: function() {
+						// check if email is tagged by PhishDetect
+						var hdr = gFolderDisplay.selectedMessage;
+						var msgId = hdr.messageId;
+						var rc = pdGetMsgFlag(hdr);
 
-		// (3) when DOM content of the email is loaded
-		messagePane.addEventListener("DOMContentLoaded", function(event) {
-			// check if email is tagged by PhishDetect
-			var hdr = gFolderDisplay.selectedMessage;
-			if (hdr !== null && pdCheckForPhish(hdr)) {
-				// display sanitized message
-				pdShowSanitizedMsg(true);
-			}
-		}, true);
-
-		// (4) handle context menu events in the message pane
-		messagePane.addEventListener("contextmenu", pdMailViewContext, true);
-    }
+						// handle notification bar
+						var handleNotificationBar = function(msgId, rc) {
+							pdLogger.debug("Showing: " + msgId);
+							if (rc.phish) {
+								// set notification bar content
+								let ts = new Date(rc.date);
+								document.getElementById('pd-scan-date').innerHTML =
+									"Indications (found on " +
+									ts.toLocaleDateString() + " " +
+									ts.toLocaleTimeString() + "):";
+								for (let i = 0; i < rc.indications.length; i++) {
+									let txt = document.getElementById('pd-reason-'+i);
+									txt.innerHTML = rc.indications[i];
+									txt.collapsed = false;
+								}
+								// show PhishDetect notification bar
+								document.getElementById('pd-deck').collapsed = false;
+							}
+						}
+						// unprocessed email?
+						if (rc === null) {
+							// scan running?
+							if (window.pdScanning === null) {
+								pdLogger.debug("Starting scan: " + msgId);
+								window.pdScanning = msgId;
+								// email is unprocessed: check now
+								pdCheckMessage(hdr, function(hdr, rc) {
+									// scan complete...
+									window.pdScanning = null;
+									pdLogger.debug("onEndHeaders: checked email: " + msgId + " ==> " + rc);
+									pdSetMsgFlag(hdr, rc);
+									// show notification bar (if applicable)
+									handleNotificationBar(msgId, rc);
+								});
+							}
+						} else {
+							// show notification bar (if applicable)
+							handleNotificationBar(msgId, rc);
+						}
+					},
+					onStartAttachments: function() {},
+					onEndAttachments: function() {
+						// display sanitized attachments ?!
+					},
+					onBeforeShowHeaderPane: function() {}
+				});
+			}, true);
+			
+			// (2) close PhishDetect notification bar when message pane is unloaded
+			messagePane.addEventListener("unload", function(event) {
+				document.getElementById('pd-deck').collapsed = true;
+			}, true);
 	
-    // initialize extension core
-	pdInit();
-
-	// setup periodic scheduler for synchronization tasks (every minute)
-	setInterval(pdTaskScheduler, 60000);
-
-}, false);
+			// (3) when DOM content of the email is loaded
+			messagePane.addEventListener("DOMContentLoaded", function(event) {
+				// check if email is tagged by PhishDetect
+				var hdr = gFolderDisplay.selectedMessage;
+				if (hdr !== null && pdCheckForPhish(hdr)) {
+					// display sanitized message
+					pdShowSanitizedMsg(true);
+				}
+			}, true);
+	
+			// (4) handle context menu events in the message pane
+			messagePane.addEventListener("contextmenu", pdMailViewContext, true);
+	    }
+		
+	    // initialize extension core
+		pdInit();
+	
+		// setup periodic scheduler for synchronization tasks (every minute)
+		setInterval(pdTaskScheduler, 60000);
+	
+	}, false);
+}

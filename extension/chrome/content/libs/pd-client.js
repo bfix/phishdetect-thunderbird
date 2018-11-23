@@ -332,7 +332,11 @@ function pdSetMsgFlag(aMsgHdr, aRC) {
 
 // get the PhishDetect flag for a message
 function pdGetMsgFlag(aMsgHdr) {
-	return pdDatabase.getEmailStatus(aMsgHdr.messageId);
+	var rc = pdDatabase.getEmailStatus(aMsgHdr.messageId);
+	if (rc === null || rc.phish === undefined) {
+		return null;
+	}
+	return rc;
 }
 
 // list of tags (possible indicators) in an email
@@ -548,11 +552,11 @@ function pdCheckMIMEPart(list, part, rc, skip) {
  *****************************************************************************/
 
 // process a MIME message object
-function pdInspectEMail(email) {
-	pdLogger.debug("inspectEMail(): " + email.headers.from);
+function pdInspectEMail(hdr, email) {
+	pdLogger.debug("inspectEMail(): " + hdr.messageId);
 	
 	// check for "real" email (and not a draft)
-	if (email.headers["message-id"] === undefined) {
+	if (hdr.messageId === undefined) {
 		pdLogger.log("Skipping unsent email (no message id)");
 		return null;
 	}
@@ -563,7 +567,6 @@ function pdInspectEMail(email) {
 	var list = [];
 
 	// check sender(s) of email
-	pdLogger.debug(JSON.stringify(email.headers));
 	var count = 0;
 	var total = 1;
 	if (pdCheckEmailAddress(tagList, email.headers.from, "email_from")) {
@@ -639,8 +642,7 @@ function pdInspectEMail(email) {
 	}
 
 	// get the email identifier in the database
-	var label = "From " + email.headers.from + " (" + email.headers.date + ")";
-	var emailId = pdDatabase.getEmailId(email.headers["message-id"][0], label);
+	var emailId = pdDatabase.getEmailId(hdr.messageId);
 	pdLogger.debug("email id: " + emailId);
 	if (emailId == 0) {
 		return null;
