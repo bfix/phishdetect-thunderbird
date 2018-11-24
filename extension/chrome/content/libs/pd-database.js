@@ -72,7 +72,7 @@ var pdDatabase = {
 	// get the PhishDetect status of an email
 	getEmailStatus: function(msgId) {
 		var stmt = this.dbConn.createStatement(
-			"SELECT status FROM emails WHERE message_id = :msgid"
+			"SELECT timestamp,status,indications FROM emails WHERE message_id = :msgid"
 		);
 		stmt.params.msgid = msgId;
 		if (!stmt.step()) {
@@ -80,32 +80,35 @@ var pdDatabase = {
 			pdLogger.debug("getEmailStatus(" + msgId + "): null");
 			return null;
 		}
-		// status not set yet
-		if (stmt.row.status === null) {
-			pdLogger.debug("getEmailStatus(" + msgId + "): {}");
-			return {};
-		}
 		pdLogger.debug("getEmailStatus(" + msgId + "): " + stmt.row.status);
-		return JSON.parse(stmt.row.status);
+		return {
+			status: stmt.row.status,
+			date: stmt.row.timestamp,
+			indications: JSON.parse(stmt.row.indications)
+		}
 	},
 	
 	// set the PhishDetect status of an email
 	// TODO: make SQL work
-	setEmailStatus: function(msgId, stat) {
+	setEmailStatus: function(msgId, rc) {
 		var stmt = null;
 		if (this.getEmailStatus(msgId) === null) {
-			pdLogger.debug("setEmailStatus(" + msgId + ") -- insert: " + status);
+			pdLogger.debug("setEmailStatus(" + msgId + ") -- insert: " + rc);
 			stmt = this.dbConn.createStatement(
-				"INSERT INTO emails (message_id,status) VALUES(:msgid,:status)"
+				"INSERT INTO emails (message_id,status,timestamp,indications) " +
+				"VALUES(:msgid,:status,:ts,:indications)"
 			);
 		} else {
-			pdLogger.debug("setEmailStatus(" + msgId + ") -- update: " + status);
+			pdLogger.debug("setEmailStatus(" + msgId + ") -- update: " + rc);
 			stmt = this.dbConn.createStatement(
-				"UPDATE emails SET status = :status WHERE message_id = :msgid"
+				"UPDATE emails SET status = :status, indications = :indications, " +
+				"timestamp = :ts WHERE message_id = :msgid"
 			);
 		}
 		stmt.params.msgid = msgId;
-		stmt.params.status = JSON.stringify(stat);
+		stmt.params.ts = rc.date;
+		stmt.params.status = rc.status;
+		stmt.params.indications = JSON.stringify(rc.indications);
 		return stmt.execute();
 	},
 
@@ -274,33 +277,35 @@ var pdDatabase = {
 			tables: {
 				// TABLE indicators
 				indicators:
-					"id         INTEGER PRIMARY KEY,"+
-					"indicator  VARCHAR(64) NOT NULL,"+
-					"kind       INTEGER DEFAULT 0,"+
+					"id            INTEGER PRIMARY KEY,"+
+					"indicator     VARCHAR(64) NOT NULL,"+
+					"kind          INTEGER DEFAULT 0,"+
 					"CONSTRAINT indicator_unique UNIQUE(indicator)",
 					
 				// TABLE emails
 				emails:
-					"id         INTEGER PRIMARY KEY,"+
-					"message_id VARCHAR(255) NOT NULL,"+
-					"status     VARCHAR(1024) DEFAULT NULL,"+
+					"id            INTEGER PRIMARY KEY,"+
+					"message_id    VARCHAR(255) NOT NULL,"+
+					"timestamp     INTEGER DEFAULT 0," +
+					"status        INTEGER DEFAULT 0," +
+					"indications   VARCHAR(1024) DEFAULT '[]',"+
 					"CONSTRAINT email_unique UNIQUE(message_id)",
 
 				// TABLE tags
 				tags:
-					"id         INTEGER PRIMARY KEY,"+
-					"raw        VARCHAR(1024) NOT NULL,"+
-					"hash       VARCHAR(64),"+
-					"indicator  INTEGER DEFAULT NULL,"+
-					"type       VARCHAR(32) NOT NULL,"+
+					"id            INTEGER PRIMARY KEY,"+
+					"raw           VARCHAR(1024) NOT NULL,"+
+					"hash          VARCHAR(64),"+
+					"indicator     INTEGER DEFAULT NULL,"+
+					"type          VARCHAR(32) NOT NULL,"+
 					"CONSTRAINT tag_unique UNIQUE(raw,type),"+
 					"FOREIGN KEY(indicator) REFERENCES indicators(id)",
 					
 				// TABLE email_tags
 				email_tags:
-					"id         INTEGER PRIMARY KEY,"+
-					"email      INTEGER NOT NULL,"+
-					"tag        INTEGER NOT NULL,"+
+					"id            INTEGER PRIMARY KEY,"+
+					"email         INTEGER NOT NULL,"+
+					"tag           INTEGER NOT NULL,"+
 					"CONSTRAINT email_tag_unique UNIQUE(email,tag),"+
 					"FOREIGN KEY(email) REFERENCES emails(id),"+
 					"FOREIGN KEY(tag) REFERENCES tags(id)",

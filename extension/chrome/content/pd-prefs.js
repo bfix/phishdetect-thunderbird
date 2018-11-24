@@ -40,9 +40,9 @@ var pdPrefsPane = {
 
 	// validate all fields and block exit if invalid fields are encountered
 	validate: function() {
-		if (!changed('node-url')) return false;
-		if (!changed('node-sync')) return false;
-		if (!changed('test-rate')) return false;
+		if (!this.changed('node-url')) return false;
+		if (!this.changed('node-sync')) return false;
+		if (!this.changed('test-rate')) return false;
 		return true;
 	},
 	

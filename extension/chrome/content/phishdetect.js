@@ -58,7 +58,7 @@ function pdScanEmail() {
 	pdCheckMessage(hdr, function(aMsgHdr, aRC) {
 		// set message flag to reflect detection status
 		pdSetMsgFlag(aMsgHdr, aRC);
-		pdStatusMsg(aRC.phish ? "Suspicious email content!" : "Email looks clean");
+		pdStatusMsg(aRC.status != 1 ? "Suspicious email content!" : "Email looks clean");
 		// TODO: update rendering of message
 	});
 }
@@ -87,7 +87,7 @@ function pdScanFolder() {
 	var cb = function(aMsgHdr, aRC) {
 		// set message header to reflect detection status
 		pdSetMsgFlag(aMsgHdr, aRC);
-		if (aRC.phish) {
+		if (aRC.status == -1) {
 			flagged++;
 		}
 		// status feedback
@@ -117,7 +117,7 @@ function pdCheckForPhish(aMsgHdr) {
 	if (rc === null) {
 		return false;
 	}
-	return rc.phish;
+	return rc.status == 1;
 }
 
 /*****************************************************************************
@@ -317,7 +317,7 @@ if (window.pdExtensionLoaded === undefined) {
 						// handle notification bar
 						var handleNotificationBar = function(msgId, rc) {
 							pdLogger.debug("Showing: " + msgId);
-							if (rc.phish) {
+							if (rc.status == 1) {
 								// set notification bar content
 								let ts = new Date(rc.date);
 								document.getElementById('pd-scan-date').innerHTML =

@@ -330,13 +330,9 @@ function pdSetMsgFlag(aMsgHdr, aRC) {
 	return pdDatabase.setEmailStatus(aMsgHdr.messageId, aRC);
 }
 
-// get the PhishDetect flag for a message
+// get the PhishDetect info for a message
 function pdGetMsgFlag(aMsgHdr) {
-	var rc = pdDatabase.getEmailStatus(aMsgHdr.messageId);
-	if (rc === null || rc.phish === undefined) {
-		return null;
-	}
-	return rc;
+	return pdDatabase.getEmailStatus(aMsgHdr.messageId);
 }
 
 // list of tags (possible indicators) in an email
@@ -672,7 +668,7 @@ function pdInspectEMail(hdr, email) {
 	
 	// return inspection result
 	return {
-		phish: (list.length > 0),
+		status: (list.length > 0 ? 1 : -1),
 		date: Date.now(),
 		indications: list
 	}
