@@ -117,7 +117,7 @@ function pdCheckForPhish(aMsgHdr) {
 	if (rc === null) {
 		return false;
 	}
-	return rc.status == 1;
+	return rc.status == -1;
 }
 
 /*****************************************************************************
@@ -178,6 +178,9 @@ function pdShowSanitizedMsg(aMode) {
 	// go through the message body and sanitize it
 	var browser = window.document.getElementById('messagepane');
 	var doc = browser.contentDocument;
+	if (doc.body === null) {
+		return;
+	}
 	// TODO: check obsolence of getAttribute
 	
 	if (doc.body.getAttribute('phishdetect') != 'true' || !aMode) {
@@ -269,6 +272,54 @@ function pdTaskScheduler() {
 
 
 /*****************************************************************************
+ * Handle notification bar
+ *****************************************************************************/
+
+function pdHandleNotificationBar(msgId, rc) {
+	// flagged as suspicious?
+	if (rc.status == -1) {
+		// yes: set notification bar content
+		let ts = new Date(rc.date);
+		document.getElementById('pd-scan-date').innerHTML =
+			"Indications (found on " +
+			ts.toLocaleDateString() + " " +
+			ts.toLocaleTimeString() + "):";
+		
+		// helper function to add list entries
+		let list = document.getElementById("pd-indications-list");
+		while (list.itemCount > 0) {
+			list.removeItemAt(0);
+		}
+		let addEntry = function(entry) {
+			let row = document.createElement('listitem');
+			// add content
+		    let cell = document.createElement('listcell');
+		    cell.setAttribute('label', entry.raw);
+		    row.appendChild(cell);
+		    // add type label
+		    cell = document.createElement('listcell');
+		    cell.setAttribute('label', entry.type);
+		    row.appendChild(cell);
+		    list.appendChild(row);				
+		}
+		// show indications for this email
+		let inds = pdDatabase.getIndications(msgId);
+		if (inds.length > 0) {
+			for (let i = 0; i < inds.length; i++) {
+				addEntry(inds[i]);
+			}
+			list.rows = Math.min(5, inds.length);
+		} else {
+			addEntry('None [DEMO-Mode]');
+			list.rows = 1;
+		}
+		// show PhishDetect notification bar
+		document.getElementById('pd-deck').collapsed = false;
+	}
+}
+
+
+/*****************************************************************************
  * Initialize the PhishDetect extension.
  *****************************************************************************/
 
@@ -304,9 +355,6 @@ if (window.pdExtensionLoaded === undefined) {
 						document.getElementById('pd-deck').collapsed = true;
 						pdShowDetails(true);
 						document.getElementById("pd-block").collapsed = false;
-						for (let i = 0; i < 6; i++) {
-							document.getElementById('pd-reason-'+i).collapsed = true;
-						}
 					},
 					onEndHeaders: function() {
 						// check if email is tagged by PhishDetect
@@ -314,25 +362,6 @@ if (window.pdExtensionLoaded === undefined) {
 						var msgId = hdr.messageId;
 						var rc = pdGetMsgFlag(hdr);
 
-						// handle notification bar
-						var handleNotificationBar = function(msgId, rc) {
-							pdLogger.debug("Showing: " + msgId);
-							if (rc.status == 1) {
-								// set notification bar content
-								let ts = new Date(rc.date);
-								document.getElementById('pd-scan-date').innerHTML =
-									"Indications (found on " +
-									ts.toLocaleDateString() + " " +
-									ts.toLocaleTimeString() + "):";
-								for (let i = 0; i < rc.indications.length; i++) {
-									let txt = document.getElementById('pd-reason-'+i);
-									txt.innerHTML = rc.indications[i];
-									txt.collapsed = false;
-								}
-								// show PhishDetect notification bar
-								document.getElementById('pd-deck').collapsed = false;
-							}
-						}
 						// unprocessed email?
 						if (rc === null) {
 							// scan running?
@@ -346,12 +375,12 @@ if (window.pdExtensionLoaded === undefined) {
 									pdLogger.debug("onEndHeaders: checked email: " + msgId + " ==> " + rc);
 									pdSetMsgFlag(hdr, rc);
 									// show notification bar (if applicable)
-									handleNotificationBar(msgId, rc);
+									pdHandleNotificationBar(msgId, rc);
 								});
 							}
 						} else {
 							// show notification bar (if applicable)
-							handleNotificationBar(msgId, rc);
+							pdHandleNotificationBar(msgId, rc);
 						}
 					},
 					onStartAttachments: function() {},

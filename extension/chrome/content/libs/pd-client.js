@@ -457,7 +457,7 @@ function pdCheckLink(list, link, type) {
 }
 
 // check MIME part of the email
-function pdCheckMIMEPart(list, part, rc, skip) {
+function pdCheckMIMEPart(list, part, skip) {
 	// find MIME part to scan
 	var usePart = null;
 	var bodyType = null;
@@ -487,7 +487,7 @@ function pdCheckMIMEPart(list, part, rc, skip) {
 		case "multipart/mixed":
 			// process all parts
 			for (let i = 0; i < part.parts.length; i++) {
-				pdCheckMIMEPart(list, part.parts[i], rc, true);
+				pdCheckMIMEPart(list, part.parts[i], true);
 			}
 			return;
 		default:
@@ -504,27 +504,6 @@ function pdCheckMIMEPart(list, part, rc, skip) {
 		return;
 	}
 	
-	// shared code to process links
-	var processLink = function(link,rc) {
-		var res = pdCheckLink(list, link, "email_link");
-		if (res === null) {
-			return;
-		}
-		switch (res.mode) {
-		case "email":
-			rc.totalEmail++;
-			if (res.status) {
-				rc.countEmail++;
-			}
-			break;
-		case "link":
-			rc.totalLinks++;
-			if (res.status) {
-				rc.countLinks++;
-			}
-			break;
-		}
-	}
 	pdLogger.debug("checkMIMEPart() body=" + usePart.body);
 	var reg, result;
 	if (bodyType == "text/html") {
@@ -532,13 +511,13 @@ function pdCheckMIMEPart(list, part, rc, skip) {
 		reg = new RegExp("<a\\s*href=([^\\s>]*)", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
 			let link = result[1].replace(/^["']?|["']?$/gm,'');
-			processLink(link, rc, "email_link");
+			pdCheckLink(list, link, "email_link")
 		}
 	} else if (bodyType == "text/plain") {
 		// scan plain text
 		reg = new RegExp("\\s?((http|https|ftp)://[^\\s<]+[^\\s<\.)])", "gim");
 		while ((result = reg.exec(usePart.body)) !== null) {
-			processLink(result[1], rc, "email_link");
+			pdCheckLink(list, result[1], "email_link")
 		}
 	}
 }
@@ -560,82 +539,43 @@ function pdInspectEMail(hdr, email) {
 	// compile a list of incidents
 	var tagList = new pdTagList();
 	pdLogger.debug("tagList = " + tagList);
-	var list = [];
 
 	// check sender(s) of email
-	var count = 0;
-	var total = 1;
 	if (pdCheckEmailAddress(tagList, email.headers.from, "email_from")) {
 		count++;
 	}
 	if (email.headers.sender !== undefined) {
-		total += email.headers.sender.length; 
 		email.headers.sender.forEach(sender => {
-			if (pdCheckEmailAddress(tagList, sender, "email_sender")) {
-				count++;
-			}
+			pdCheckEmailAddress(tagList, sender, "email_sender");
 		});
-	}
-	if (count > 0) {
-		list.push("Sender (" + count + "/" + total + ")");
-		count = 0;
 	}
 	
 	// check reply-to and return path elements
-	total = 0;
 	if (email.headers["reply-to"] !== undefined) {
-		total = 1;
-		if (pdCheckEmailAddress(tagList, email.headers["reply-to"], "email_replyto")) {
-			count++;
-		}
+		pdCheckEmailAddress(tagList, email.headers["reply-to"], "email_replyto");
 	}
 	if (email.headers["return-path"] !== undefined) {
-		total += email.headers["return-path"].length;
 		email.headers["return-path"].forEach(replyTo => {
-			if (pdCheckEmailAddress(tagList, replyTo, "email_return")) {
-				count++;
-			}
+			pdCheckEmailAddress(tagList, replyTo, "email_return");
 		});
-	}
-	if (count > 0) {
-		list.push("ReplyTo (" + count + "/" + total + ")");
-		count = 0;
 	}
 	
 	// check mail hops
-	total = 0;
 	if (email.headers.received !== undefined) {
-		total += email.headers.received.length;
 		email.headers.received.forEach(hop => {
-			if (pdCheckMailHop(tagList, hop)) {
-				count++;
-			}
+			pdCheckMailHop(tagList, hop);
 		});
 	}
 	if (email.headers["x-received"] !== undefined) {
-		total += email.headers["x-received"].length;
 		email.headers["x-received"].forEach(hop => {
-			if (pdCheckMailHop(tagList, hop)) {
-				count++;
-			}
+			pdCheckMailHop(tagList, hop);
 		});
-	}
-	if (count > 0) {
-		list.push("Mail hops (" + count + "/" + total + ")");
-		count = 0;
 	}
 
 	// inspect MIME parts
-	var rc = { countLinks: 0, totalLinks: 0, countEmail: 0, totalEmail: 0 }
 	email.parts.forEach(part => {
-		pdCheckMIMEPart(tagList, part, rc, false);
+		pdCheckMIMEPart(tagList, part, false);
 	});
-	if (rc.countLinks > 0) {
-		list.push("Links (" + rc.countLinks + "/" + rc.totalLinks + ")");
-	}
-	if (rc.countEmail > 0) {
-		list.push("Email addresses (" + rc.countEmail + "/" + rc.totalEmail + ")");
-	}
 
 	// get the email identifier in the database
 	var emailId = pdDatabase.getEmailId(hdr.messageId);
@@ -645,6 +585,7 @@ function pdInspectEMail(hdr, email) {
 	}
 
 	// insert tags into the database.
+	var status = 1;
 	for (let i = 0; i < tagList.data.length; i++) {
 		let tag = tagList.data[i];
 		pdLogger.debug("Adding tag: " + tag);
@@ -655,22 +596,20 @@ function pdInspectEMail(hdr, email) {
 		// record incident if indicator found
 		if (tag.indicator != 0) {
 			pdDatabase.recordIncident(emailTagId);
+			status = -1;
 		}
 	}
-	
 	// TEST mode: The demo incidents are not recorded and reported.
-	if (pdPrefs.test && list.length == 0) {
+	if (pdPrefs.test && status == 0) {
 		let rate = pdPrefs.test_rate / 100;
 		if (Math.random() < rate) {
-			list.push("DEMO modus -- not based on detection!");
+			status = -1;
 		}
 	}
-	
 	// return inspection result
 	return {
-		status: (list.length > 0 ? 1 : -1),
+		status: status,
 		date: Date.now(),
-		indications: list
 	}
 }
 

@@ -72,7 +72,7 @@ var pdDatabase = {
 	// get the PhishDetect status of an email
 	getEmailStatus: function(msgId) {
 		var stmt = this.dbConn.createStatement(
-			"SELECT timestamp,status,indications FROM emails WHERE message_id = :msgid"
+			"SELECT timestamp,status FROM emails WHERE message_id = :msgid"
 		);
 		stmt.params.msgid = msgId;
 		if (!stmt.step()) {
@@ -84,7 +84,6 @@ var pdDatabase = {
 		return {
 			status: stmt.row.status,
 			date: stmt.row.timestamp,
-			indications: JSON.parse(stmt.row.indications)
 		}
 	},
 	
@@ -95,20 +94,19 @@ var pdDatabase = {
 		if (this.getEmailStatus(msgId) === null) {
 			pdLogger.debug("setEmailStatus(" + msgId + ") -- insert: " + rc);
 			stmt = this.dbConn.createStatement(
-				"INSERT INTO emails (message_id,status,timestamp,indications) " +
-				"VALUES(:msgid,:status,:ts,:indications)"
+				"INSERT INTO emails (message_id,status,timestamp) " +
+				"VALUES(:msgid,:status,:ts)"
 			);
 		} else {
 			pdLogger.debug("setEmailStatus(" + msgId + ") -- update: " + rc);
 			stmt = this.dbConn.createStatement(
-				"UPDATE emails SET status = :status, indications = :indications, " +
-				"timestamp = :ts WHERE message_id = :msgid"
+				"UPDATE emails SET status = :status, timestamp = :ts " +
+				"WHERE message_id = :msgid"
 			);
 		}
 		stmt.params.msgid = msgId;
 		stmt.params.ts = rc.date;
 		stmt.params.status = rc.status;
-		stmt.params.indications = JSON.stringify(rc.indications);
 		return stmt.execute();
 	},
 
@@ -216,7 +214,7 @@ var pdDatabase = {
 		}
 		finally {
 			if (stmt !== null) {
-				pdLogger.debug("recordIncident(" + tagId + ")");
+				pdLogger.debug("recordIncident(" + emailTagId + ")");
 				stmt.reset();
 			}
 		}
@@ -255,6 +253,31 @@ var pdDatabase = {
 		return result;
 	},
 	
+	// get indications for a given email
+	getIndications: function(msgId) {
+		// combine tables to retrieve records
+		var stmt = this.dbConn.createStatement(
+			"SELECT id,reported,raw,type FROM v_indications WHERE message_id = :msgid"
+		);
+		stmt.params.msgid = msgId;
+		// get records
+		var result = [];
+		try {
+			while (stmt.executeStep()) {
+				result.push({
+					id: stmt.row.id,
+					reported: stmt.row.reported,
+					raw: stmt.row.raw,
+					type: stmt.row.type,
+				});
+			}
+		}
+		finally {
+			stmt.reset();
+		}
+		return result;
+	},
+	
 	// flag incident as reported
 	setReported: function(id, val) {
 		this.dbConn.executeSimpleSQL('UPDATE incidents SET reported = ' + val + ' WHERE id = ' + id)
@@ -277,50 +300,49 @@ var pdDatabase = {
 			tables: {
 				// TABLE indicators
 				indicators:
-					"id            INTEGER PRIMARY KEY,"+
-					"indicator     VARCHAR(64) NOT NULL,"+
-					"kind          INTEGER DEFAULT 0,"+
+					"id            INTEGER PRIMARY KEY," +
+					"indicator     VARCHAR(64) NOT NULL," +
+					"kind          INTEGER DEFAULT 0," +
 					"CONSTRAINT indicator_unique UNIQUE(indicator)",
 					
 				// TABLE emails
 				emails:
-					"id            INTEGER PRIMARY KEY,"+
-					"message_id    VARCHAR(255) NOT NULL,"+
+					"id            INTEGER PRIMARY KEY," +
+					"message_id    VARCHAR(255) NOT NULL," +
 					"timestamp     INTEGER DEFAULT 0," +
 					"status        INTEGER DEFAULT 0," +
-					"indications   VARCHAR(1024) DEFAULT '[]',"+
 					"CONSTRAINT email_unique UNIQUE(message_id)",
 
 				// TABLE tags
 				tags:
-					"id            INTEGER PRIMARY KEY,"+
-					"raw           VARCHAR(1024) NOT NULL,"+
-					"hash          VARCHAR(64),"+
-					"indicator     INTEGER DEFAULT NULL,"+
-					"type          VARCHAR(32) NOT NULL,"+
-					"CONSTRAINT tag_unique UNIQUE(raw,type),"+
+					"id            INTEGER PRIMARY KEY," +
+					"raw           VARCHAR(1024) NOT NULL," +
+					"hash          VARCHAR(64)," +
+					"indicator     INTEGER DEFAULT NULL," +
+					"type          VARCHAR(32) NOT NULL," +
+					"CONSTRAINT tag_unique UNIQUE(raw,type)," +
 					"FOREIGN KEY(indicator) REFERENCES indicators(id)",
 					
 				// TABLE email_tags
 				email_tags:
-					"id            INTEGER PRIMARY KEY,"+
-					"email         INTEGER NOT NULL,"+
-					"tag           INTEGER NOT NULL,"+
-					"CONSTRAINT email_tag_unique UNIQUE(email,tag),"+
-					"FOREIGN KEY(email) REFERENCES emails(id),"+
+					"id            INTEGER PRIMARY KEY," +
+					"email         INTEGER NOT NULL," +
+					"tag           INTEGER NOT NULL," +
+					"CONSTRAINT email_tag_unique UNIQUE(email,tag)," +
+					"FOREIGN KEY(email) REFERENCES emails(id)," +
 					"FOREIGN KEY(tag) REFERENCES tags(id)",
 					
 				// TABLE incidents
 				incidents:
-					"id            INTEGER PRIMARY KEY,"+
-					"timestamp     INTEGER NOT NULL," +
-					"email_tag     INTEGER NOT NULL,"+
-					"reported      INTEGER DEFAULT 0,"+
-					"FOREIGN KEY(email_tag) REFERENCES email_tags(id),"+
+					"id            INTEGER PRIMARY KEY," +
+					"timestamp     INTEGER NOT NULL,"  +
+					"email_tag     INTEGER NOT NULL," +
+					"reported      INTEGER DEFAULT 0," +
+					"FOREIGN KEY(email_tag) REFERENCES email_tags(id)," +
 					"CONSTRAINT incident_unique UNIQUE(email_tag)",
 			},
 			views: {
-				n_incidents:
+				v_incidents:
 					"CREATE VIEW v_incidents AS SELECT " +
 						"inc.id AS id," +
 						"inc.timestamp AS timestamp," +
@@ -334,10 +356,25 @@ var pdDatabase = {
 						"incidents inc, indicators ind, tags tag, "+
 						"emails email, email_tags et " +
 					"WHERE "+
-						"inc.email_tag = et.id AND "+
+						"inc.email_tag = et.id AND " +
+						"et.email = email.id AND " +
+						"et.tag = tag.id AND " +
+						"tag.indicator = ind.id;",
+						
+				v_indications:
+					"CREATE VIEW v_indications AS SELECT " +
+						"inc.id AS id," +
+						"inc.reported AS reported," +
+						"email.message_id AS message_id," +
+						"tag.raw AS raw," +
+						"tag.type AS type " +
+					"FROM "+
+						"tags tag, emails email, " +
+						"email_tags et, incidents inc " +
+					"WHERE "+
+						"et.id = inc.email_tag AND " +
 						"et.email = email.id AND "+
-						"et.tag = tag.id AND "+
-						"tag.indicator = ind.id"
+						"et.tag = tag.id;"
 			}
 		};
 		
@@ -374,8 +411,13 @@ var pdDatabase = {
 	},
 
 	_dbCreateViews: function(adbConn) {
-		for (let name in this.dbSchema.views) {
-			adbConn.executeSimpleSQL(this.dbSchema.views[name]);
+		var name = "";
+		try {
+			for (name in this.dbSchema.views) {
+				adbConn.executeSimpleSQL(this.dbSchema.views[name]);
+			}
+		} catch(e) {
+			pdLogger.error("_createViews(" + name + "): " + e);
 		}
 	},
 };
