@@ -24,7 +24,7 @@
 			<preference id="pref-test"            name="extensions.phishdetect.test"            type="bool"/>
 			<preference id="pref-test-rate"       name="extensions.phishdetect.test_rate"       type="int"/>
 			<preference id="pref-test-report"     name="extensions.phishdetect.test_report"     type="bool"/>
-			<preference id="pref-debug"           name="extensions.phishdetect.debug"           type="bool"/>
+			<preference id="pref-loglevel"        name="extensions.phishdetect.log_level"       type="int"/>
 		</preferences>
 
 		<tabbox>
@@ -104,7 +104,18 @@
 						</hbox>
 						<checkbox id="pd-pref-test-report" label="Report test incidents" preference="pref-test-report" checked="false"/>
 					</groupbox>
-					<checkbox id="pd-pref-debug" label="Debugging log:" preference="pref-debug" checked="false"/>
+					<hbox align="center">
+						<label control="pd-loglevel" value="Log level:"/>
+						<menulist id="pd-loglevel" preference="pref-loglevel">
+							<menupopup>
+								<menuitem label="Debug" value="0"/>
+								<menuitem label="Log" value="1"/>
+								<menuitem label="Info" value="2"/>
+								<menuitem label="Warnings" value="3"/>
+								<menuitem label="Errors" value="4"/>
+							</menupopup>
+						</menulist>
+					</hbox>
 				</tabpanel>
 
 				<!-- ===================================================
