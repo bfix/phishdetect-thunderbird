@@ -25,11 +25,13 @@ var pdDatabase = {
 	 *******************************************************************/
 		
 	// add a list of (or a single) indicator to the database
+	// @returns nothing
 	addIndicators: function(indicators, kind, callback) {
 		var stmt = this.dbConn.createStatement(
 			"INSERT OR IGNORE INTO indicators(indicator,kind) VALUES(:indicator,:kind)"
 		);
 		if (Array.isArray(indicators)) {
+			// process list of indicators
 			let params = stmt.newBindingParamsArray();
 			for (let i = 0; i < indicators.length; i++) {
 				let bp = params.newBindingParams();
@@ -39,6 +41,7 @@ var pdDatabase = {
 			}
 			stmt.bindParameters(params);
 		} else {
+			// process single indicator
 			logger.debug("addIndicators(): " + indicators);
 			stmt.params.list = indicators;
 		}
@@ -46,7 +49,6 @@ var pdDatabase = {
 			handleError: function(aError) {
 				callback(-1, aError.message);
 			},
-
 			handleCompletion: function(aReason) {
 				let msg = "DONE";
 				if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
@@ -70,6 +72,7 @@ var pdDatabase = {
 	},
 	
 	// get the PhishDetect status of an email
+	// @returns {Object} or null if not in database
 	getEmailStatus: function(msgId) {
 		var stmt = this.dbConn.createStatement(
 			"SELECT timestamp,status FROM emails WHERE message_id = :msgid"
@@ -88,7 +91,7 @@ var pdDatabase = {
 	},
 	
 	// set the PhishDetect status of an email
-	// TODO: make SQL work
+	// @returns {bool} success?
 	setEmailStatus: function(msgId, rc) {
 		var stmt = null;
 		if (this.getEmailStatus(msgId) === null) {
@@ -111,6 +114,7 @@ var pdDatabase = {
 	},
 
 	// returns the database identifier for an email
+	// @returns {int} database id (or 0 on error)
 	getEmailId: function(msgId, isRetry) {
 		try {
 			// check if the email record exists. if so, return the id
@@ -128,7 +132,7 @@ var pdDatabase = {
 			}
 			// insert new record into the table
 			stmt = this.dbConn.createStatement(
-				"INSERT OR IGNORE INTO emails(message_id) VALUES(:msgid)"
+				"INSERT INTO emails(message_id) VALUES(:msgid)"
 			);
 			stmt.params.msgid = msgId;
 			stmt.execute();
@@ -141,6 +145,7 @@ var pdDatabase = {
 	},
 	
 	// get the identifier of an tag
+	// @returns {int} database id (or 0 on error)
 	getTagId: function(raw, type, hash, indicator, isRetry) {
 		// check if the tag record exists. if so, return the id
 		var stmt = this.dbConn.createStatement(
@@ -158,7 +163,7 @@ var pdDatabase = {
 		}
 		// insert new record into the table
 		stmt = this.dbConn.createStatement(
-			"INSERT OR IGNORE INTO tags(raw,type,hash,indicator) "+
+			"INSERT INTO tags(raw,type,hash,indicator) "+
 			"VALUES(:raw,:type,:hash,:indicator)"
 		);
 		stmt.params.raw = raw;
@@ -170,6 +175,7 @@ var pdDatabase = {
 	},
 
 	// get the identifier of an email tag
+	// @returns {int} database id (or 0 on error)
 	getEmailTagId: function(emailId, tagId, isRetry) {
 		// check if the email_tag record exists. if so, return the id
 		var stmt = this.dbConn.createStatement(
@@ -187,7 +193,7 @@ var pdDatabase = {
 		}
 		// insert new record into the table
 		stmt = this.dbConn.createStatement(
-			"INSERT OR IGNORE INTO email_tags(email,tag) VALUES(:email,:tag)"
+			"INSERT INTO email_tags(email,tag) VALUES(:email,:tag)"
 		);
 		stmt.params.email = emailId;
 		stmt.params.tag = tagId;
@@ -198,6 +204,7 @@ var pdDatabase = {
 	// record incident:
 	// an incident is the occurrence of an indicator in a context (like a
 	// specific webpage or email).
+	// @returns nothing
 	recordIncident: function(emailTagId) {
 		var stmt = null;
 		try {
@@ -221,6 +228,7 @@ var pdDatabase = {
 	},
 	
 	// get incidents from database
+	// @returns {[]Object} list of incidents
 	getIncidents: function(unreported) {
 		// combine tables to retrieve records
 		var sql =
@@ -254,6 +262,7 @@ var pdDatabase = {
 	},
 	
 	// get indications for a given email
+	// @returns {[]Object} list of indications
 	getIndications: function(msgId) {
 		// combine tables to retrieve records
 		var stmt = this.dbConn.createStatement(
@@ -279,6 +288,7 @@ var pdDatabase = {
 	},
 	
 	// flag incident as reported
+	// @returns nothing
 	setReported: function(id, val) {
 		this.dbConn.executeSimpleSQL('UPDATE incidents SET reported = ' + val + ' WHERE id = ' + id)
 	},
@@ -287,10 +297,11 @@ var pdDatabase = {
 	 * PhishDetect database core functions
 	 *******************************************************************/
 
-	dbConn:			null,
-	dbSchema:		null,
-	initialized:	false,
+	dbConn:			null,	// database connection
+	dbSchema:		null,	// database schema
+	initialized:	false,	// initialized instance?
 
+	// initialize the database
 	init: function() {
 		if (this.initialized) {
 			return;
@@ -377,47 +388,26 @@ var pdDatabase = {
 						"et.tag = tag.id;"
 			}
 		};
-		
+
+		// get handle to database file (in profile folder)
 		var dirService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
 		var dbFile = dirService.get("ProfD", Ci.nsIFile);
 		dbFile.append("phishdetect.sqlite");
 
+		// create or open the database
 		var dbService = Cc["@mozilla.org/storage/service;1"].getService(Ci.mozIStorageService);
-		var dbConn;
-
-		if (!dbFile.exists()) {
-			dbConn = this._dbCreate(dbService, dbFile);
-		} else {
-			dbConn = dbService.openDatabase(dbFile);
-		}
-		this.dbConn = dbConn;
-	},
-	
-	executeSimpleSQL: function(stmt) {
-		this.dbConn.executeSimpleSQL(stmt);
-	},
-
-	_dbCreate: function(aDBService, aDBFile) {
-		var dbConn = aDBService.openDatabase(aDBFile);
-		this._dbCreateTables(dbConn);
-		this._dbCreateViews(dbConn);
-		return dbConn;
-	},
-
-	_dbCreateTables: function(adbConn) {
-		for (let name in this.dbSchema.tables) {
-			adbConn.createTable(name, this.dbSchema.tables[name]);
-		}
-	},
-
-	_dbCreateViews: function(adbConn) {
-		var name = "";
-		try {
-			for (name in this.dbSchema.views) {
-				adbConn.executeSimpleSQL(this.dbSchema.views[name]);
+		var doCreate = !dbFile.exists(); 
+		this.dbConn = dbService.openDatabase(dbFile);
+		if (doCreate) {
+			let name = "";
+			// create tables
+			for (name in this.dbSchema.tables) {
+				this.dbConn.createTable(name, this.dbSchema.tables[name]);
 			}
-		} catch(e) {
-			pdLogger.error("_createViews(" + name + "): " + e);
+			// create views
+			for (name in this.dbSchema.views) {
+				this.dbConn.executeSimpleSQL(this.dbSchema.views[name]);
+			}
 		}
-	},
+	}
 };
