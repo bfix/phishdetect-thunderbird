@@ -38,7 +38,7 @@
 				<caption>
 					Report options:
 				</caption>
-				<checkbox id="pd-dlg-reports-context" label="Include context in report" checked="false"/>
+				<checkbox id="pd-dlg-reports-context" label="Include EmailID in report" checked="false"/>
 				<hbox align="center">
 					<description value="Reporter:"/>
 					<description id="pd-dlg-reports-user"/>

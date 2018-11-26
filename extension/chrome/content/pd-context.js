@@ -61,10 +61,8 @@ function pdContextCheckLink(event) {
 		'chrome://phishdetect/content/pd-check.xhtml',
 		'pd-dlg-checkurl',
 		'chrome,centerscreen,titlebar,width=800,height=500',
-		{
-			url: pdContextNode.getAttribute('href'),
-			srv: pdPrefs.node_url
-		}
+		pdContextNode.getAttribute('href'),
+		pdPrefs.node_url
 	); 
 	pdStatusMsg("Checking URL...");
 }
@@ -72,7 +70,11 @@ function pdContextCheckLink(event) {
 //open reporting dialog (if reports is enabled)
 function pdManageReport() {
 	if (pdPrefs.reports) {
-		toOpenWindowByType('phishdetect:reports', 'chrome://phishdetect/content/pd-reports.xul');
+		window.openDialog(
+			'chrome://phishdetect/content/pd-reports.xul',
+			'pd-dlg-reporting',
+			'chrome,centerscreen,titlebar,width=800,height=500'
+		);
 	} else {
 		alert("Reporting disabled in preferences");
 	}

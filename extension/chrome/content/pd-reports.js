@@ -30,7 +30,9 @@ var pdReportsSending = false;
 
 // dialog is loaded
 function pdReportsOnLoad() {
-
+	// we are in a new environment, so initialize...
+	pdInit();
+	
 	// set date of last reporting
 	var v = pdPrefs.reports_last;
 	var msg = pdGetElapsedTime(v);
@@ -76,7 +78,7 @@ function pdReportsOnLoad() {
 	};
   
 	// set reporter (user identifier)
-	document.getElementById("pd-dlg-reports-user").value = pdPrefs.reports_contact; 
+	document.getElementById("pd-dlg-reports-user").value = pdPrefs.reports_contact;
 	document.getElementById("pd-dlg-reports-context").checked = pdPrefs.reports_context; 
 }
 
@@ -102,7 +104,7 @@ function pdReportsDlgSend() {
 		() => {
 			// close dialog.
 			pdReportsSending = false;
-			let wnd = Services.wm.getMostRecentWindow('phishdetect:reports');
+			let wnd = Services.wm.getMostRecentWindow('pd-dlg-reporting');
 			if (wnd !== null) {
 				wnd.close();
 			}

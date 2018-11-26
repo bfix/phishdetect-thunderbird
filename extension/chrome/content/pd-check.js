@@ -29,8 +29,8 @@ function pdCheckOnLoad(event) {
 	pdCheckRunning = true;
 
 	// get arguments
-	var url = window.arguments[0].url;
-	var srv = window.arguments[0].srv;
+	var url = window.arguments[0];
+	var srv = window.arguments[1];
 	
 	// set URL to check
 	var dispUrl = url
