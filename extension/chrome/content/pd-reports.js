@@ -28,10 +28,15 @@ var pdReportsPending = null;
 // flag if reports are currently processed
 var pdReportsSending = false;
 
+// globals
+var pdPref = null;
+var pdDatabase = null;
+
 // dialog is loaded
 function pdReportsOnLoad() {
 	// we are in a new environment, so initialize...
-	pdInit();
+	pdPrefs = window.arguments[0];
+	pdDatabase = window.arguments[1];
 	
 	// set date of last reporting
 	var v = pdPrefs.reports_last;
@@ -39,7 +44,6 @@ function pdReportsOnLoad() {
 	document.getElementById("pd-dlg-reports-last").value = msg; 
 
 	// get unreported incidents
-	pdDatabase.init();
 	pdReportsPending = pdDatabase.getIncidents(true);
 	msg = "No";
 	if (pdReportsPending !== undefined && pdReportsPending.length > 0) {

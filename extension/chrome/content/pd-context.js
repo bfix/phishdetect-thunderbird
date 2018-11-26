@@ -73,7 +73,9 @@ function pdManageReport() {
 		window.openDialog(
 			'chrome://phishdetect/content/pd-reports.xul',
 			'pd-dlg-reporting',
-			'chrome,centerscreen,titlebar,width=800,height=500'
+			'chrome,centerscreen,titlebar,width=800,height=500',
+			pdPrefs,
+			pdDatabase
 		);
 	} else {
 		alert("Reporting disabled in preferences");
