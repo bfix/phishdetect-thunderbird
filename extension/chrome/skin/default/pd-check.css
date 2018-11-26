@@ -57,11 +57,18 @@ body {
 	color: red;	
 }
 
+#pd-check-preview-canvas {
+	border: 1px solid black;
+	padding: 0.8em;
+	width: 99%;
+	margin-top: 0.8em;
+}
+
 #pd-check-error {
 	
 }
 
-#pd-check-error-button {
+#pd-check-error-button, #pd-check-preview-button {
 	color: blue;
 	text-decoration: underline;
 	font-size: 70%;

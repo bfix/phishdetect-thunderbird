@@ -91,6 +91,10 @@ function pdCheckOnLoad(event) {
 				document.getElementById('pd-check-results-list').innerHTML = list;
 				document.getElementById('pd-check-results').classList.remove('hidden');
 			}
+			if (result.screenshot.length > 0) {
+				document.getElementById('pd-check-preview-image').src = result.screenshot;
+				document.getElementById('pd-check-preview').classList.remove('hidden');
+			}
 			pdCheckRunning = false;
 		}, error => {
 			// error occurred
@@ -110,6 +114,18 @@ function pdCheckDetails() {
     } else {
         e.style.display = "block";
         b.innerHTML="Hide details";
+    }
+}
+
+function pdCheckPreview() {
+	var b = document.getElementById('pd-check-preview-button');
+	var e = document.getElementById('pd-check-preview-canvas');
+    if (e.style.display === "block") {
+        e.style.display = "none";
+        b.innerHTML="Show preview";
+    } else {
+        e.style.display = "block";
+        b.innerHTML="Hide preview";
     }
 }
 
