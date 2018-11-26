@@ -123,11 +123,13 @@ you might want to change some settings. The dialog has three tabs:
   required). Only HTTP(S) connections are supported.
   * **Sync interval**: Specify the time between automatic updates with the
   PhishDetect node to retrieve new indicators.
+  * **Background rescan**: All previously scanned emails will be re-evaluated
+  against the new indicators retrieved during a sync.
 * **Report**:
   * **Enable reporting**: You can en- and disable the reporting function. It
   is enabled by default.
   * **Auto send report**: Select the time between automatic sending of reports.
-  * **Include context**: You can include the message-id of the incident in
+  * **Include EmailID**: You can include the message-id of the incident in
   the report for forensic purposes.
   * **User**: You can specify a random name here to be included in a report.
 * **Misc**:
@@ -137,9 +139,9 @@ you might want to change some settings. The dialog has three tabs:
     should be tagged.
     * **Report test incidents**: You can include test incidents in a report
     for testing purposes.
-  * **Debugging log**: Enable this if you encounter problems with the extension.
-  The output on the console (see Deveoper Toolbox in Thunderbird) will be
-  more verbose and can help track down problems.  
+  * **Log Level**: Select a log level. Choose "Debug" if you encounter problems
+  with the extension. The output on the console (see Deveoper Toolbox in
+  Thunderbird) will be more verbose and can help track down problems.  
 
 ### Scanning email
 
@@ -157,9 +159,11 @@ a long time to be processed (~15000 emails per hour).
 If you have enabled thePhishDetect column, you will be able to identify
 detected emails at first glance.
 
-If you select a detected (phishing) email in the mail view, you will notice
-an additional header above the email body to notify you of a problem with
-this email:
+If an email is selected for display, it will also be checked automatically if
+it has not been checked before (old emails received before installing the
+extension). If the selected email is "positive" (probably a phishing email),
+you will notice an additional header above the email body to notify you of a
+problem with this email:
 
 ![PhishDetect notification bar screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-notification-bar.png)
 
@@ -186,7 +190,18 @@ is displayed in a separate dialog box.
 
 ### Reporting
 
-t.b.d.
+Incidents (the occurrence of an indicator in an email) will be reported to
+the PhishDetect node when they are detected. If the incident report could
+not be sent (e.g. because of network failure), it will be tagged unreported.
+Unreported incidents are sent every hour (retry) until successfully transfered.
+
+You can check for unreported incidents by using the toolbar menu
+`PhishDetect > Reporting...` and will see a list of unreported incidents:
+
+![PhishDetect reporting screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-report.png)
+
+If the list is not empty, you can fore the sending of a report by clicking
+on the "Send report" button.
 
 ### Keep an eye on the log files
 
