@@ -186,7 +186,10 @@ suspicious links in them you don't know and want to evaluate, you can ask
 the PhishDetect node to perform checks on the link and the website behind it.
 To do so, you open the context menu over the link in the email body and
 select "Check Link..." in the PhishDetect submenu. The result of the check
-is displayed in a separate dialog box.
+is displayed in a separate dialog box:
+
+![PhishDetect check screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-check.png)
+
 
 ### Reporting
 
