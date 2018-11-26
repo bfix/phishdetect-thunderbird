@@ -1,36 +1,91 @@
 
-#pd-check-canvas {
-	background-color: white;	
-	margin: 0.3em;
-	padding: 0.6em;
+body {
+	background-color: white;
+	color: black;
+	padding: 0;
 }
 
-#pd-check-result-warnings, #pd-check-result-dange {
-	margin-top: 1em;
+#pd-check-hdr {
+	background-color: black;
+	color: white;
+	padding: 0.8em;
+	margin: 0;
+	overflow: auto;
 }
 
-#pd-check-brand-name {
-	color: green;	
+#pd-check-deck {
+	margin: 2em;
+}
+
+#pd-check-title {
+	font-size: 150%;
+	font-style: italic;
+	font-weight: bold;
+}
+
+#pd-check-url {
+	color: orange;
+	font-weight: bold;
+}
+
+#pd-check-running {
+	padding-top: 3em;
+	text-align: center;
+	vertical-align: middle;	
 }
 
 #pd-check-whitelisted {
-	background-color: #e1ffd9;
+	border: 1px solid green;
+	background-color: #e0ffe0;
+	color: green;
+	padding: 0.8em;
+
 }
 
-listheader {
+#pd-check-brand {
+	border: 1px solid red;
+	background-color: #ffe0e0;
+	color: red;
+	padding: 0.8em;
+}
+
+#pd-check-brand-name, #pd-check-brand-name2 {
+	font-weight: bold;
+}
+
+#pd-check-results-list {
+	color: red;	
+}
+
+#pd-check-error {
+	
+}
+
+#pd-check-error-button {
+	color: blue;
+	text-decoration: underline;
+	font-size: 70%;
+	cursor: pointer;
+}
+
+#pd-check-error-msg {
+	border: 1px solid red;
+	background-color: #ffe0e0;
 	color: red;
 	font-weight: bold;
+	padding: 0.8em;
 }
 
-listcell {
-	background-color: #ffd7d7;
+#pd-check-error-details {
+	display: none;
 }
 
-.pd-bold {
+.title {
 	font-weight: bold;
+	font-size: 130%;	
 	font-style: italic;
 }
 
-.pd-big2 {
-	font-size: 200%;
+.hidden {
+	display: none;
 }

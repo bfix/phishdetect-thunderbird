@@ -58,11 +58,12 @@ function pdContextCheckLink(event) {
 	}
 	// show check dialog
 	window.openDialog(
-		'chrome://phishdetect/content/pd-check.xul',
+		'chrome://phishdetect/content/pd-check.xhtml',
 		'pd-dlg-checkurl',
-		'chrome,centerscreen,titlebar',
+		'chrome,centerscreen,titlebar,width=800,height=500',
 		{
-			url: pdContextNode.getAttribute('href')
+			url: pdContextNode.getAttribute('href'),
+			srv: pdPrefs.node_url
 		}
 	); 
 	pdStatusMsg("Checking URL...");

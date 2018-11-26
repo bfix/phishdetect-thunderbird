@@ -28,73 +28,90 @@ function pdCheckOnLoad(event) {
 	pdLogger.debug("check flag: " + pdCheckRunning);
 	pdCheckRunning = true;
 
-	// set URL to check
+	// get arguments
 	var url = window.arguments[0].url;
-	document.documentElement.firstChild.setAttribute('title', url);
-
-	// disable "close" button
-	pdCheckButton = document.documentElement.getButton('accept');
-	pdCheckButton.disabled = true;
+	var srv = window.arguments[0].srv;
 	
-	// handle decks
-	var deck = document.getElementById("pd-check-canvas");
-	deck.selectedIndex = 0;
+	// set URL to check
+	var dispUrl = url
+	if (dispUrl.length > 60) {
+		dispUrl = dispUrl.substr(0,60) + "...";
+	}
+	document.getElementById('pd-check-url').innerHTML = dispUrl;
+	//document.getElementById('pd-check-url-tt').innerHTML = url;
+	
+	// get cards in deck
+	var vCheck = document.getElementById('pd-check-running');
+	var vError = document.getElementById('pd-check-error');
+	var vOk = document.getElementById('pd-check-ok');
+	var vWarning = document.getElementById('pd-check-warning');
+	var vDanger = document.getElementById('pd-check-danger');
 
 	// send request to PhishDetect node
 	// assemble new form data instance
-	var request = JSON.stringify({
-		url: url,
-		html: ''
-	});
-	pdSendRequest("/api/analyze/link/", "POST", request)
+	var prop = {
+		method: "POST",
+		body: request = JSON.stringify({ url: url, html: '' }),
+		headers: { "Content-Type": "application/json" }
+	}
+	//document.getElementById('pd-check-test').innerHTML = srv;
+	fetch(srv + "/api/analyze/link/", prop)
 		.then(response => response.json())
 		.then(result => {
 			// evaluate result
 			var list = null;
 			if (result.whitelisted || result.score == 0  || result.warnings === null || result.warnings.length == 0) {
 				// switch to "All good" card
-				deck.selectedIndex = 1;
-				document.getElementById("pd-check-whitelisted").collapsed = !result.whitelisted;
-				document.getElementById("pd-check-brand-name2").value =
-					(result.brand.length > 0 ? result.brand : "the correct entity.");
+				vCheck.classList.add('hidden');
+				vOk.classList.remove('hidden');
+				if (result.whitelisted) {
+					document.getElementById("pd-check-brand-name2").innerHTML =
+						(result.brand.length > 0 ? result.brand : "the correct entity.");
+					document.getElementById("pd-check-whitelisted").classList.remove('hidden');
+				}
 			} else if (result.score > 50) {
 				// switch to danger
-				deck.selectedIndex = 3;
-				list = document.getElementById("pd-check-result-danger");
+				vCheck.classList.add('hidden');
+				vDanger.classList.remove('hidden');
 				// check for brand impersonation
-				document.getElementById("pd-check-brand").collapsed = true;
-				if (result.brand !== null && result,brand.length > 0) {
-					document.getElementById("pd-check-brand").collapsed = false;
-					document.getElementById("pd-check-brand-name").value = result.brand;
+				if (result.brand !== null && result.brand.length > 0) {
+					document.getElementById("pd-check-brand-name").innerHTML = result.brand;
+					document.getElementById("pd-check-brand").classList.remove('hidden');
 				}
 			} else {
 				// switch to warning
-				deck.selectedIndex = 2;
-				list = document.getElementById("pd-check-result-warnings");
+				vCheck.classList.add('hidden');
+				vWarning.classList.remove('hidden');
 			}
-			if (list != null) {
-				// helper function to add list entries
-				let addEntry = function(entry) {
-					let row = document.createElement('listitem');
-				    let cell = document.createElement('listcell');
-				    cell.setAttribute('label', entry);
-				    row.appendChild(cell);
-				    list.appendChild(row);				
+			if (result.warnings !== null && result.warnings.length > 0) {
+				let list = "";
+				for (let i = 0; i < result.warnings.length; i++) {
+					list += "<li>" + result.warnings[i] + "</li>";
 				}
-				if (result.warnings !== null && result.warnings.length > 0) {
-					for (let i = 0; i < result.warnings.length; i++) {
-						addEntry(result.warnings[i]);
-					}
-				} else {
-					addEntry('None');
-				}
+				document.getElementById('pd-check-results-list').innerHTML = list;
+				document.getElementById('pd-check-results').classList.remove('hidden');
 			}
-			// enable "close" button
-			pdCheckButton.disabled = false;
 			pdCheckRunning = false;
+		}, error => {
+			// error occurred
+			vCheck.classList.add('hidden');
+			document.getElementById('pd-check-error-msg').innerHTML = error;
+			vError.classList.remove('hidden');
+			pdLogger.error("urlCheck(): " + error);
 		});
 }
 
+function pdCheckDetails() {
+	var b = document.getElementById('pd-check-error-button');
+	var e = document.getElementById('pd-check-error-details');
+    if (e.style.display === "block") {
+        e.style.display = "none";
+        b.innerHTML="Show details";
+    } else {
+        e.style.display = "block";
+        b.innerHTML="Hide details";
+    }
+}
 
 function pdCheckClose() {
 	return !pdCheckRunning;
