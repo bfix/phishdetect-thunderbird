@@ -40,9 +40,6 @@ function pdRescanOnLoad() {
 		// get the msgId list from the window arguments
 		pdMsgIds = window.arguments[0];
 		
-		// TODO: remove TEST case
-		pdMsgIds.push('anynvs54jkvxr2yd-ipxh2a6100xa1lqd-287c@contrletytri1.bid');
-		
 		// run query
 		try {
 			let query = Gloda.newQuery(Gloda.NOUN_MESSAGE, {
