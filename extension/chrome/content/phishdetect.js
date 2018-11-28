@@ -22,9 +22,6 @@
 
 Cu.import("resource:///modules/gloda/mimemsg.js");
 
-// nsIMessenger instance for access to messages
-var pdMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
-
 	
 /*****************************************************************************
  * Scan email content for phishing using the PhishDetect engine
@@ -181,8 +178,6 @@ function pdShowSanitizedMsg(aMode) {
 	if (doc.body === null) {
 		return;
 	}
-	// TODO: check obsolence of getAttribute
-	
 	if (doc.body.getAttribute('phishdetect') != 'true' || !aMode) {
 		// only process once...
 		doc.body.setAttribute('phishdetect','true');
@@ -210,21 +205,34 @@ function pdStatusMsg(msg) {
 function pdSyncWithNode() {
 	// get latest indicators
 	pdStatusMsg("Fetching indicators...");
-	pdFetchIndicators(function(rc, msg){
-		var out = "";
-		switch (rc) {
-			case -1:
-				out = "Database error -- " + msg;
-				break;
-			case 1:
-				out = (msg == "DONE" ? "Fetched indicators." : "Fetch cancelled.");
-				break;
+	pdFetchIndicators(
+		// cbFetch
+		function(rc, msg) {
+			var out = "";
+			switch (rc) {
+				case -1:
+					out = "Database error -- " + msg;
+					break;
+				case 1:
+					out = (msg == "DONE" ? "Fetched indicators." : "Fetch cancelled.");
+					break;
+			}
+			if (out.length > 0) {
+				pdStatusMsg(out);
+				pdLogger.info(out);
+			}
+		},
+		// cbRescan
+		function(email_keys) {
+			// show rescan dialog
+			window.openDialog(
+				'chrome://phishdetect/content/pd-rescan.xul',
+				'pd-dlg-rescan',
+				'chrome,centerscreen,titlebar,width=1000,height=500',
+				email_keys
+			); 
 		}
-		if (out.length > 0) {
-			pdStatusMsg(out);
-			pdLogger.info(out);
-		}
-	});
+	);
 }
 
 // get timestamp of last node sync

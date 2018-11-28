@@ -29,6 +29,9 @@ const Cu = Components.utils;
 // import modules
 Cu.import("resource://gre/modules/Services.jsm");
 
+// nsIMessenger instance for access to messages
+var pdMessenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
+
 // initialize common services
 var pdDlgPrompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
 
@@ -163,7 +166,7 @@ function pdSendRequest(uri, method, req) {
  *****************************************************************************/
 	
 // fetch latest indicators
-function pdFetchIndicators(callback) {
+function pdFetchIndicators(cbFetch, cbRescan) {
 	var now = Math.floor(Date.now() / 1000);
 	pdPrefs.setInt('node_sync_last_try', now);
 	pdSendRequest("/api/indicators/fetch/?last=" + pdPrefs.node_sync_last, "GET", null)
@@ -181,11 +184,16 @@ function pdFetchIndicators(callback) {
 				return;
 			}
 			// add indicators to database
-			pdDatabase.addIndicators(rc.domains, 1, callback);
-			pdDatabase.addIndicators(rc.emails, 2, callback);
+			pdDatabase.addIndicators(rc.domains, 1, cbFetch);
+			pdDatabase.addIndicators(rc.emails, 2, cbFetch);
 			
 			// update timestamp in preferences
 			pdPrefs.setInt('node_sync_last', now);
+			
+			// handle re-scan of old emails on demand
+			if (pdPrefs.node_rescan && cbRescan !== null) {
+				pdRescan(cbRescan);
+			}
 		})
 		// external failure
 		.catch(error => {
@@ -213,6 +221,53 @@ function pdCheckForIndicator(raw) {
 	var id = pdDatabase.hasIndicator(indicator);
 	return { indicator: indicator, id: id };
 }
+
+// flag for running rescan (time intensive task)
+var pdRescanActive = false;
+
+// re-scan old emails with new indicators
+// @returns nothing
+function pdRescan(callback) {
+	// prevent double invocation
+	if (pdRescanActive) {
+		return;
+	}
+	pdRescanActive = true;
+	// get all pending tags
+	var list = pdDatabase.getPendingTags();
+	pdLogger.info("Recan started -- " + list.length + " unresolved tags");
+	var found = [];
+	if (list.length > 0) {
+		// traverse the list and lookup indicator
+		for (let i = 0; i < list.length; i++) {
+			let tagId = list[i].id;
+			let ind = list[i].hash;
+			let indicatorId = pdDatabase.hasIndicator(ind);
+			if (indicatorId != 0) {
+				// we found an indicator for the tag
+				pdDatabase.resolveTagIndicator(tagId, indicatorId);
+				// get a list of messages involved
+				let emails = pdDatabase.getEmailsWithTag(tagId);
+				if (emails.length > 0) {
+					// create new incidents for all occurrences
+					for (let j = 0; j < emails.length; j++) {
+						// record incident
+						pdDatabase.recordIncident(emails[j].id);
+						found.push(emails[j].message_id);
+					}
+				}
+			}
+		}
+	}
+	// check if we have old messages with new incidents.
+	// handle emails in callback (list could be empty)
+	callback(found.filter(function(value, index, self) {
+		return self.indexOf(value) === index
+	}));
+	// unlock
+	pdRescanActive = false;
+}
+
 
 /*****************************************************************************
  * Incident report related functions
@@ -244,14 +299,19 @@ function pdSendReport(pending, withContext, final) {
 		if (incident.kind == 0 && !withTest) {
 			continue;
 		}
-		// send incident report
-		// TODO: missing context passing
-		tasks.push(
-			pdSendEvent(
-				pdIncidentType[incident.kind], incident.type, incident.raw,
-				incident.indicator, user, incident.id
-			)
-		);
+		// assemble and queue "send task" for incident report
+		var report = JSON.stringify({
+			"type": incident.type,
+			"indicator": incident.raw,
+			"hashed": incident.indicator,
+			"target_contact": user,
+			"date": incident.timestamp,
+			//---
+			"kind": pdIncidentType[incident.kind],
+			"context": incident.context
+		});
+		pdLogger.debug("Report: " + report);
+		tasks.push(pdSendRequest("/api/events/add/", "POST", report));
 		count++;
 	}
 	// record last report date
@@ -301,23 +361,6 @@ function pdSendReport(pending, withContext, final) {
 		});
 	// return number of reported incidents
 	return count;
-}
-
-// send a notification about a detected indicator
-// @returns {Promise}
-function pdSendEvent(kind, type, indicator, hashed, user, id) {
-	// assemble report
-	var report = JSON.stringify({
-		// "kind": kind,
-		"type": type,
-		"indicator": indicator,
-		"hashed": ""+hashed,
-		"target_contact": user
-	});
-	pdLogger.debug("Report: " + report);
-
-	// send to PhishDetect node
-	return pdSendRequest("/api/events/add/", "POST", report);
 }
 
 

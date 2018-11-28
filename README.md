@@ -230,7 +230,7 @@ is not running, add test indicators:
 
 ```bash
 $ cd $profile
-$ sqlite phishdetect.sqlite
+$ sqlite3 phishdetect.sqlite
 sqlite> insert or ignore into indicators(indicator) values
 ('007f1dbe16d6a6d8dcc0bbdde514864a7af68a08823674ebd0cf640cbe2490b9'),
 ('019e560588abb2fb090bf08dc5f26e5851ad40629de00b3da367ea9453f4e90e'),

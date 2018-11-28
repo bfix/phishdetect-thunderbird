@@ -74,6 +74,10 @@ var pdDatabase = {
 	// get the PhishDetect status of an email
 	// @returns {Object} or null if not in database
 	getEmailStatus: function(msgId) {
+		// check for valid message id
+		if (msgId === null || msgId.length == 0) {
+			return null;
+		}
 		var stmt = this.dbConn.createStatement(
 			"SELECT timestamp,status FROM emails WHERE message_id = :msgid"
 		);
@@ -93,6 +97,10 @@ var pdDatabase = {
 	// set the PhishDetect status of an email
 	// @returns {bool} success?
 	setEmailStatus: function(msgId, rc) {
+		// check for valid message id
+		if (msgId === null || msgId.length == 0) {
+			return false;
+		}
 		var stmt = null;
 		if (this.getEmailStatus(msgId) === null) {
 			pdLogger.debug("setEmailStatus(" + msgId + ") -- insert: " + rc);
@@ -172,6 +180,70 @@ var pdDatabase = {
 		stmt.params.indicator = indicator;
 		stmt.execute();
 		return this.getTagId(raw, type, hash, indicator, true);
+	},
+	
+	// get a list of tags that are not resolved to indicators yet
+	// @returns {[]tag} list of pending tags
+	getPendingTags: function() {
+		var stmt = null;
+		var result = [];
+		try {
+			stmt = this.dbConn.createStatement(
+				"SELECT id, hash FROM tags WHERE indicator = 0"
+			);
+			while (stmt.executeStep()) {
+				result.push({
+					id: stmt.row.id,
+					hash: stmt.row.hash
+				});
+			}
+		}
+		catch(e) {
+			pdLogger.error("getPendingTags(): " + e);
+		}
+		finally {
+			if (stmt !== null) {
+				stmt.reset();
+			}
+		}
+		return result;
+	},
+	
+	// set the associated indicator reference for a tag
+	resolveTagIndicator: function(tagId, indicatorId) {
+		stmt = this.dbConn.createStatement(
+			'UPDATE tags SET indicator = :indId WHERE id = :tagId'
+		);
+		stmt.params.tagId = tagId;
+		stmt.params.indId = indicatorId;
+		return stmt.execute();
+	},
+	
+	// get all emails with a given tag
+	getEmailsWithTag: function(tagId) {
+		var stmt = null;
+		var result = [];
+		try {
+			stmt = this.dbConn.createStatement(
+				"SELECT id, message_id FROM v_email_tags WHERE tag_id = :tag_id"
+			);
+			stmt.params.tag_id = tagId;
+			while (stmt.executeStep()) {
+				result.push({
+					id: stmt.row.id,
+					message_id: stmt.row.message_id
+				});
+			}
+		}
+		catch(e) {
+			pdLogger.error("getEmailsWithTag(): " + e);
+		}
+		finally {
+			if (stmt !== null) {
+				stmt.reset();
+			}
+		}
+		return result;
 	},
 
 	// get the identifier of an email tag
@@ -290,7 +362,12 @@ var pdDatabase = {
 	// flag incident as reported
 	// @returns nothing
 	setReported: function(id, val) {
-		this.dbConn.executeSimpleSQL('UPDATE incidents SET reported = ' + val + ' WHERE id = ' + id)
+		stmt = this.dbConn.createStatement(
+			'UPDATE incidents SET reported = :flag WHERE id = :id'
+		);
+		stmt.params.id = id;
+		stmt.params.flag = val;
+		return stmt.execute();
 	},
 
 	/*******************************************************************
@@ -363,10 +440,10 @@ var pdDatabase = {
 						"ind.kind AS kind," +
 						"email.message_id AS context," +
 						"inc.reported AS reported " +
-					"FROM "+
+					"FROM " +
 						"incidents inc, indicators ind, tags tag, "+
 						"emails email, email_tags et " +
-					"WHERE "+
+					"WHERE " +
 						"inc.email_tag = et.id AND " +
 						"et.email = email.id AND " +
 						"et.tag = tag.id AND " +
@@ -379,13 +456,26 @@ var pdDatabase = {
 						"email.message_id AS message_id," +
 						"tag.raw AS raw," +
 						"tag.type AS type " +
-					"FROM "+
+					"FROM " +
 						"tags tag, emails email, " +
 						"email_tags et, incidents inc " +
-					"WHERE "+
+					"WHERE " +
 						"et.id = inc.email_tag AND " +
 						"et.email = email.id AND "+
-						"et.tag = tag.id;"
+						"et.tag = tag.id;",
+					
+				v_email_tags:
+					"CREATE VIEW v_email_tags AS SELECT " +
+						"et.id AS id," +
+						"t.id AS tag_id," +
+						"e.message_id AS message_id " +
+					"FROM " +
+						"email_tags et," +
+						"emails e," +
+						"tags t " +
+					"WHERE " +
+						"et.tag = t.id AND " +
+						"et.email = e.id;"	
 			}
 		};
 
