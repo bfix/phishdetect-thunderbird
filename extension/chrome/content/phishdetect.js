@@ -225,12 +225,14 @@ function pdSyncWithNode() {
 		// cbRescan
 		function(email_keys) {
 			// show rescan dialog
-			window.openDialog(
-				'chrome://phishdetect/content/pd-rescan.xul',
-				'pd-dlg-rescan',
-				'chrome,centerscreen,titlebar,width=1000,height=500',
-				email_keys
-			); 
+			if (email_keys.length > 0) {
+				window.openDialog(
+					'chrome://phishdetect/content/pd-rescan.xul',
+					'pd-dlg-rescan',
+					'chrome,centerscreen,titlebar,width=1000,height=500',
+					email_keys
+				);
+			}
 		}
 	);
 }
