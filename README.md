@@ -200,6 +200,8 @@ is displayed in a separate dialog box:
 
 ![PhishDetect check screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-check.png)
 
+By clicking on "Show preview" you can see a screenshot of the website as
+seen by the PhishDetect node.
 
 ### Reporting
 
