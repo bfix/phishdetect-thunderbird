@@ -150,14 +150,24 @@ intervention is necessary. You can force a (re-)check of emails by opening
 the context menu (right-click) for either an email folder or a single email
 and selecting the scan/check function.
 
-N.B.: If you scan all emails in a folder the extension will process around
+N.B.: If you scan all emails in a folder the extension will process at most
 five messages per second (rate limited) to make sure the user interface of
 Thunderbird is still usable and reasonably responsive. If you encounter
 problems here, please let me know. Folder with a lot of emails will take
-a long time to be processed (~15000 emails per hour).
+a long time to be processed (~10000 emails per hour).
 
 If you have enabled thePhishDetect column, you will be able to identify
 detected emails at first glance.
+
+If you have enabled **Background rescan" all previously scanned emails
+(independent whether they are flagged by PhishDetect or not) will be
+rescanned if new indicators are fetched from the PhishDetect node. If
+new incidents are found, they will be reported; a dialog will display a
+list of effected emails:
+
+![PhishDetect rescan screenshot](https://github.com/bfix/phishdetect-thunderbird/raw/master/docs/img/pd-rescan.png)
+
+### Viewing emails
 
 If an email is selected for display, it will also be checked automatically if
 it has not been checked before (old emails received before installing the
