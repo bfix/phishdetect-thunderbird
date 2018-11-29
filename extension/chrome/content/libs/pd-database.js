@@ -120,6 +120,24 @@ var pdDatabase = {
 		stmt.params.status = rc.status;
 		return stmt.execute();
 	},
+	
+	// an email with given id is permanently removed from the database
+	removeEmail: function(msgId) {
+		// remove the mail (will delete all email_tags amd incidents records
+		// referring to this email as well).
+		var stmt = this.dbConn.createStatement(
+			"DELETE FROM emails WHERE message_id = :msgid"
+		);
+		stmt.params.msgid = msgId;
+		if (!stmt.execute()) {
+			return false;
+		}
+		// remove any pending tags
+		var stmt = this.dbConn.createStatement(
+			"DELETE FROM tags WHERE id NOT IN (SELECT tag FROM email_tags)"
+		);
+		return stmt.execute();
+	},
 
 	// returns the database identifier for an email
 	// @returns {int} database id (or 0 on error)
@@ -417,7 +435,7 @@ var pdDatabase = {
 					"email         INTEGER NOT NULL," +
 					"tag           INTEGER NOT NULL," +
 					"CONSTRAINT email_tag_unique UNIQUE(email,tag)," +
-					"FOREIGN KEY(email) REFERENCES emails(id)," +
+					"FOREIGN KEY(email) REFERENCES emails(id) ON DELETE CASCADE," +
 					"FOREIGN KEY(tag) REFERENCES tags(id)",
 					
 				// TABLE incidents
@@ -427,7 +445,7 @@ var pdDatabase = {
 					"email_tag     INTEGER NOT NULL," +
 					"reported      INTEGER DEFAULT 0," +
 					"FOREIGN KEY(email_tag) REFERENCES email_tags(id)," +
-					"CONSTRAINT incident_unique UNIQUE(email_tag)",
+					"CONSTRAINT incident_unique UNIQUE(email_tag) ON DELETE CASCADE",
 			},
 			views: {
 				v_incidents:
