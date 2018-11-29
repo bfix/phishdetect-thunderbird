@@ -159,7 +159,7 @@ a long time to be processed (~10000 emails per hour).
 If you have enabled thePhishDetect column, you will be able to identify
 detected emails at first glance.
 
-If you have enabled **Background rescan" all previously scanned emails
+If you have enabled **Background rescan** all previously scanned emails
 (independent whether they are flagged by PhishDetect or not) will be
 rescanned if new indicators are fetched from the PhishDetect node. If
 new incidents are found, they will be reported; a dialog will display a

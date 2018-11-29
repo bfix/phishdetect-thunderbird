@@ -118,16 +118,29 @@ function pdCheckForPhish(aMsgHdr) {
 }
 
 /*****************************************************************************
- * Filter incoming emails
+ * handle email state changes (new incoming, permanently deleted)
  *****************************************************************************/
 
-// Callback for incoming emails: Evaluate message body and record email status.
-var pdNewMailListener = {
+// callback for email state changes
+var pdMailListener = {
+	// new incoming email
 	msgAdded: function(aMsgHdr) {
+		// evaluate message body and record email status
 		if (!aMsgHdr.isRead) {
 			pdCheckMessage(aMsgHdr, function(aMsgHdr, aRC) {
 				pdSetMsgFlag(aMsgHdr, aRC);
 			});
+		}
+	},
+	// permanent deletion of email
+	msgsDeleted: function(list) {
+		var iter = list.enumerate();
+		// handle all elements in the list
+		while (iter.hasMoreElements()) {
+			// get next element (email database header)
+			let hdr = iter.getNext().QueryInterface(Ci.nsIMsgDBHdr);
+			// remove email from database
+			pdDatabase.removeEmail(hdr.messageId);
 		}
 	}
 };
@@ -347,11 +360,12 @@ if (window.pdExtensionLoaded === undefined) {
 		// add filter for incoming mails
 		var notificationService = Cc["@mozilla.org/messenger/msgnotificationservice;1"]
 			.getService(Ci.nsIMsgFolderNotificationService);
-		notificationService.addListener(pdNewMailListener, notificationService.msgAdded);
+		var flags = notificationService.msgAdded | notificationService.msgsDeleted;
+		notificationService.addListener(pdMailListener, flags);
 	
 		// add custom column for PhishDetect in message list view
 		Services.obs.addObserver(pdObserver, "MsgCreateDBView", false);
-	
+		
 		// handle message display
 		var messagePane = GetMessagePane();
 		if (messagePane) {
