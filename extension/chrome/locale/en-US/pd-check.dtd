@@ -12,7 +12,7 @@
 <!ENTITY pdCheckImperson   "This website is impersonating the following brand:">
 <!ENTITY pdCheckIssues     "The following issues have been detected:">
 <!ENTITY pdCheckPreviewOn  "Show preview">
-<!ENTITY pdCheckPreviewOf  "Hide preview">
+<!ENTITY pdCheckPreviewOff "Hide preview">
 <!ENTITY pdCheckError      "Sorry, the URL check service is not reachable or returned an error.">
 <!ENTITY pdCheckErrorMsg   "Make sure you are connected to the internet and that your PhishDetect node is available.">
 <!ENTITY pdCheckDetailsOn  "Show details">

@@ -11,10 +11,6 @@
 	<script type="text/javascript" src="chrome://phishdetect/content/pd-view.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/phishdetect.js"/>
 
-	<stringbundleset id="pdStringBundleSet">
-		<stringbundle src="chrome://phishdetect/locale/phishdetect.properties" id="pdStringBundle" /> 
-	</stringbundleset>
-
 	<rows id="msgNotificationBar">
 		<row id="pd-deck" collapsed="true">
 			<vbox flex="1">

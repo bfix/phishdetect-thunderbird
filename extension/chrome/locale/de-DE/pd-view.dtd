@@ -1,9 +1,9 @@
 
 <!ENTITY pdViewTitle      "PhishDetect">
-<!ENTITY pdViewCaption    "M&ouml;gliche Phishing-EMail entdekt. Alle Links in der Nahricht wurden BLOCKIERT.">
+<!ENTITY pdViewCaption    "M&ouml;gliche Phishing-EMail entdeckt. Alle Links in der Nahricht wurden BLOCKIERT.">
 <!ENTITY pdViewDetailsOn  "Zeige Details">
 <!ENTITY pdViewDetailsOff "Verberge Details">
 <!ENTITY pdViewUnblock    "Links entblocken">
-<!ENTITY pdViewIncidents  "Die folgenden Elemente dr EMail wurden als m&ouml;glicher Phishing-Versuch identifiziert:">
+<!ENTITY pdViewIncidents  "Die folgenden Elemente der EMail wurden als m&ouml;glicher Phishing-Versuch identifiziert:">
 <!ENTITY pdViewContent    "Inhalt">
 <!ENTITY pdViewType       "Typ">

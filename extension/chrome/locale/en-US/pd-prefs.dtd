@@ -15,7 +15,7 @@
 <!ENTITY pdPrefsReportUserMsg  "Enter a user name...">
 <!ENTITY pdPrefsReportLast     "Last sync: ">
 <!ENTITY pdPrefsMiscTest       "Test mode">
-<!ENTITY pdPrefsMiscTestSpoof  "Spoofed detection rate (in &percent;):">
+<!ENTITY pdPrefsMiscTestSpoof  "Spoofed detection rate (in &#37;):">
 <!ENTITY pdPrefsMiscTestReport "Report test incidents">
 <!ENTITY pdPrefsLogDebug       "Debug">
 <!ENTITY pdPrefsLogLog         "Log">

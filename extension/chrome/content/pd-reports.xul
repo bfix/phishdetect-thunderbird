@@ -11,6 +11,10 @@
 	persist="width height screenX screenY sizemode"
 	onload="pdReportsOnLoad();" onclose="pdReportsOnClose(event);">
 	
+	<stringbundleset id="stringbundleset">
+		<stringbundle src="chrome://phishdetect/locale/pd-reports.properties" id="pdReportsStringBundle" /> 
+	</stringbundleset>
+
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-stringbundle.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-database.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
@@ -29,7 +33,7 @@
 		</hbox>
 		<tree id="pd-reports-tree" editable="true" flex="1">
 			<treecols>
-				<treecol id="timestamp" editable="false" label="&pdReportDate;" flex="1"/>
+				<treecol id="timestamp" editable="false" label="&pdReportsDate;" flex="1"/>
 				<treecol id="indicator" editable="false" label="&pdReportsIndicator;" flex="1"/>
 				<treecol id="context" editable="false" label="&pdReportsContext;" flex="5"/>
 			</treecols>

@@ -6,6 +6,10 @@
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-stringbundle.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/pd-context.js"/> 
 
+	<stringbundleset id="stringbundleset">
+		<stringbundle src="chrome://phishdetect/locale/pd-context.properties" id="pdContextStringBundle" /> 
+	</stringbundleset>
+
 	<popup id="mailContext">
 		<menu class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="&pdContextTitle;">
 			<menupopup>

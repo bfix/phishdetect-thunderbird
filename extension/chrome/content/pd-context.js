@@ -65,7 +65,7 @@ function pdContextCheckLink(event) {
 		pdContextNode.getAttribute('href'),
 		pdPrefs.node_url
 	); 
-	pdStatusMsg(pdGetString('pdContext.check_url'));
+	pdStatusMsg(pdGetString('pdContext.check_url', 'pdContextStringBundle'));
 }
 
 //open reporting dialog (if reports is enabled)
@@ -79,7 +79,7 @@ function pdManageReport() {
 			pdDatabase
 		);
 	} else {
-		alert(pdGetString('pdContext.reports_off'));
+		alert(pdGetString('pdContext.reports_off', 'pdContextStringBundle'));
 	}
 }
 

@@ -58,7 +58,7 @@
 					<spacer flex="1"/>
 					<hbox align="center">
 						<spacer flex="1"/>
-						<label value="&pdPrefsNodeSyncLast"/>
+						<label value="&pdPrefsNodeSyncLast;"/>
 						<label id="pd-pref-node-sync-last"/>
 					</hbox>
 				</tabpanel>

@@ -1,5 +1,5 @@
 
-<!ENTITY pdContextTitle      "pdCheckTitle">
+<!ENTITY pdContextTitle      "PhishDetect">
 <!ENTITY pdContextCheckEmail "(Re-)Check Email">
 <!ENTITY pdContextCheckLink  "Check Link">
 <!ENTITY pdContextScanFolder "Scan emails in folder">

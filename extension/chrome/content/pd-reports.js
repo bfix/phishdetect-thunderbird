@@ -46,13 +46,13 @@ function pdReportsOnLoad() {
 
 	// get unreported incidents
 	pdReportsPending = pdDatabase.getIncidents(true);
-	msg = pdGetString('pdReports.no_report');
+	msg = pdGetString('pdReport.no_report', 'pdReportsStringBundle');
 	if (pdReportsPending !== undefined && pdReportsPending.length > 0) {
 		msg = "" + pdReportsPending.length;
 	} else {
 		pdReportsPending = null;
 	}
-	document.getElementById("pd-dlg-reports-pending").value = msg + pdGetString('pdReports.unreported');
+	document.getElementById("pd-dlg-reports-pending").value = msg + " " + pdGetString('pdReport.unreported', 'pdReportsStringBundle');
 	
 	// create tree view
 	if (pdReportsPending !== null && pdReportsPending.length > 0) {
