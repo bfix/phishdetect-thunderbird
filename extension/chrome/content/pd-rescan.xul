@@ -3,9 +3,10 @@
 <?xml-stylesheet type="text/css" href="chrome://messenger/skin/preferences/preferences.css"?>
 <?xml-stylesheet type="text/css" href="chrome://phishdetect/skin/pd-rescan.css"?>
 
+<!DOCTYPE window SYSTEM "chrome://phishdetect/locale/pd-rescan.dtd">
 <window
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-	id="pd-rescan-dlg" title="PhishDetect Re-scan" drawtitle="true"
+	id="pd-rescan-dlg" title="&pdRescanTitle;" drawtitle="true"
 	windowtype="phishdetect:rescan" height="500" width="800"
 	persist="width height screenX screenY sizemode"
 	onload="pdRescanOnLoad();" onclose="pdRescanOnClose(event);">
@@ -14,12 +15,8 @@
 
 	<vbox id="pd-rescan-canvas" flex="1">
 		<hbox align="center" flex="0">
-			<description id="pd-rescan-title">
-				New PhishDetect indicators have been found in previously
-				scanned emails:
-			</description>
-		</hbox>
-		
+			<description id="pd-rescan-title">%pdRescanCaption;</description>
+		</hbox>		
 
 		<deck id="pd-rescan-deck" selectedIndex="0" flex="1">
 		
@@ -27,7 +24,7 @@
 			<vbox flex="1">
 				<hbox align="center" flex="1">
 					<spacer flex="1"/>
-					<description value="Collecting emails -- this may take a while..."/>
+					<description value="&pdRescanWait;"/>
 					<spacer flex="1"/>
 					<image src="chrome://phishdetect/content/spinner.gif" width="32"/>
 					<spacer flex="1"/>
@@ -38,9 +35,9 @@
 			<vbox flex="1">
 				<listbox id="pd-rescan-result" rows="16" flex="1">
 					<listhead>
-						<listheader label="From"/>
-						<listheader label="Subject"/>
-						<listheader label="Date"/>
+						<listheader label="&pdRescanSender;"/>
+						<listheader label="&pdRescanSubject;"/>
+						<listheader label="&pdRescanDate;"/>
 					</listhead>
 					<listcols>
 						<listcol flex="5"/>

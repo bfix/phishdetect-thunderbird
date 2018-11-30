@@ -1,6 +1,9 @@
 
 content phishdetect chrome/content/
 
+locale  phishdetect en-US chrome/locale/en-US/
+locale  phishdetect de-DE chrome/locale/de-DE/
+
 skin    phishdetect default chrome/skin/default/
 
 overlay chrome://messenger/content/messenger.xul         chrome://phishdetect/content/pd-column.xul

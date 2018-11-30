@@ -70,11 +70,11 @@ function pdShowDetails(reset) {
 	var details = document.getElementById("pd-indications");
 	if (reset || btn.getAttribute('data-state') == "1") {
 		btn.setAttribute("data-state", "0");
-		btn.label = "Show Details";
+		btn.label = btn.getAttribute('data-on');
 		details.collapsed = true;
 	} else {
 		btn.setAttribute("data-state", "1");
-		btn.label = "Hide Details";
+		btn.label = btn.getAttribute('data-off');
 		details.collapsed = false;
 	}
 }

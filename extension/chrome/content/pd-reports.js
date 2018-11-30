@@ -34,6 +34,7 @@ var pdDatabase = null;
 
 // dialog is loaded
 function pdReportsOnLoad() {
+
 	// we are in a new environment, so initialize...
 	pdPrefs = window.arguments[0];
 	pdDatabase = window.arguments[1];
@@ -45,13 +46,13 @@ function pdReportsOnLoad() {
 
 	// get unreported incidents
 	pdReportsPending = pdDatabase.getIncidents(true);
-	msg = "No";
+	msg = pdGetString('pdReports.no_report');
 	if (pdReportsPending !== undefined && pdReportsPending.length > 0) {
 		msg = "" + pdReportsPending.length;
 	} else {
 		pdReportsPending = null;
 	}
-	document.getElementById("pd-dlg-reports-pending").value = msg + " unreported incidents";
+	document.getElementById("pd-dlg-reports-pending").value = msg + pdGetString('pdReports.unreported');
 	
 	// create tree view
 	if (pdReportsPending !== null && pdReportsPending.length > 0) {

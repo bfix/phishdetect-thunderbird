@@ -70,9 +70,9 @@ var pdPrefsPane = {
 			// check node URL entry
 			case "node-url":
 				try {
-					logger.debug("changed(node-url): " + v);
+					pdLogger.debug("changed(node-url): " + v);
 					let url = new URL(v);
-					logger.debug("=> URL: " + url);
+					pdLogger.debug("=> URL: " + url);
 					if (url.protocol != "http:" && url.protocol != "https:") {
 						f.value = "https://" + v;
 						return this.changed(field);

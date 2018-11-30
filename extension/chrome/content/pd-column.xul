@@ -1,4 +1,6 @@
 <?xml version="1.0"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://phishdetect/locale/pd-column.dtd">
 <overlay id="pd-column" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
 	<tree id="threadTree">
@@ -6,8 +8,8 @@
 			<splitter class="tree-splitter" />
 			<treecol class="treecol-image" id="pd-column-item" persist="hidden ordinal width"
 				currentView="unthreaded" flex="2" width="25"
-				label="PhishDetect" src="chrome://phishdetect/content/icon16.png"
-				tooltiptext="PhishDetect status" />
+				label="&pdColumnTitle;" src="chrome://phishdetect/content/icon16.png"
+				tooltiptext="&pdColumnStatus;" />
 		</treecols>
 	</tree>
 </overlay>

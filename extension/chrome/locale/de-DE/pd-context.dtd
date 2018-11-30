@@ -1,0 +1,5 @@
+
+<!ENTITY pdContextTitle      "PhishDetect">
+<!ENTITY pdContextCheckEmail "Untersuche EMail">
+<!ENTITY pdContextCheckLink  "Untersuche Link">
+<!ENTITY pdContextScanFolder "Pr&uuml;fe alle EMails im Ordner">

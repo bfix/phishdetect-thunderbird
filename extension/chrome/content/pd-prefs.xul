@@ -4,10 +4,11 @@
 <?xml-stylesheet type="text/css" href="chrome://messenger/skin/preferences/preferences.css"?>
 <?xml-stylesheet type="text/css" href="chrome://phishdetect/skin/pd-prefs.css"?>
 
-<prefwindow title="PhishDetect Preferences" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+<!DOCTYPE window SYSTEM "chrome://phishdetect/locale/pd-prefs.dtd">
+<prefwindow title="&pdPrefsTitle;" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	buttons="accept,cancel" ondialogaccept="return pdPrefsPane.validate();">
 	
-	<prefpane id="pd-prefs-pane" label="General" onpaneload="pdPrefsPane.init();">
+	<prefpane id="pd-prefs-pane" onpaneload="pdPrefsPane.init();">
 
 		<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
 		<script type="text/javascript" src="chrome://phishdetect/content/pd-prefs.js"/> 
@@ -29,9 +30,9 @@
 
 		<tabbox>
 			<tabs>
-				<tab label="Node"/>
-				<tab label="Reports"/>
-				<tab label="Misc"/>
+				<tab label="&pdPrefsTabNode;"/>
+				<tab label="&pdPrefsTabReport;"/>
+				<tab label="&pdPrefsTabMisc;"/>
 				<tab label="" collapsed="true"/>
 			</tabs>
 			
@@ -41,25 +42,23 @@
 				     =================================================== -->
 				<tabpanel orient="vertical">
 					<groupbox>
-						<caption>
-							Specify the PhishDetect node and synchronization parameters:
-						</caption>
+						<caption>&pdPrefsNodeCaption;</caption>
 						<hbox align="center">
-							<label control="pd-pref-node-url" value="Node URL:"/>
-							<textbox id="pd-pref-node-url" preference="pref-node-url" placeholder="Enter a URL..."
+							<label control="pd-pref-node-url" value="&pdPrefsNodeUrl;"/>
+							<textbox id="pd-pref-node-url" preference="pref-node-url" placeholder="&pdPrefsNodeUrlMsg;"
 								onchange="pdPrefsPane.changed('node-url');"/>
 						</hbox>
 						<hbox align="center">
-							<label control="pd-pref-node-sync" value="Update interval (min):"/>
+							<label control="pd-pref-node-sync" value="&pdPrefsNodeSyncInt;"/>
 							<textbox id="pd-pref-node-sync" preference="pref-node-sync" width="150" placeholder="60"
 								onchange="pdPrefsPane.changed('node-sync');"/>
 						</hbox>
-						<checkbox id="pd-pref-node-rescan" label="Background re-scan of old email for new indicators" preference="pref-node-rescan"/>
+						<checkbox id="pd-pref-node-rescan" label="&pdPrefsNodeRescan;"/>
 					</groupbox>
 					<spacer flex="1"/>
 					<hbox align="center">
 						<spacer flex="1"/>
-						<label value="Last sync: "/>
+						<label value="&pdPrefsNodeSyncLast"/>
 						<label id="pd-pref-node-sync-last"/>
 					</hbox>
 				</tabpanel>
@@ -70,20 +69,20 @@
 				<tabpanel orient="vertical">
 					<groupbox>
 						<caption>
-							<checkbox id="pd-pref-reports" label="Enable reporting" preference="pref-reports" checked="false"
+							<checkbox id="pd-pref-reports" label="&pdPrefsReportOn;" preference="pref-reports" checked="false"
 								oncommand="pdPrefsPane.update_reports();" />
 						</caption>
-						<checkbox id="pd-pref-reports-context" label="Include Email ID for reference" preference="pref-reports-context" checked="false"/>
+						<checkbox id="pd-pref-reports-context" label="&pdPrefsReportContext;" preference="pref-reports-context" checked="false"/>
 						<hbox align="center">
-							<label control="pd-pref-reports-contact" value="User:"/>
-							<textbox id="pd-pref-reports-contact" preference="pref-reports-contact" placeholder="Enter a user name..."
+							<label control="pd-pref-reports-contact" value="&pdPrefsReportUser;"/>
+							<textbox id="pd-pref-reports-contact" preference="pref-reports-contact" placeholder="&pdPrefsReportUserMsg;"
 								onchange="pdPrefsPane.changed('reports-contact');"/>
 						</hbox>
 					</groupbox>
 					<spacer flex="1"/>
 					<hbox align="center">
 						<spacer flex="1"/>
-						<label value="Last sync: "/>
+						<label value="&pdPrefsReportLast;"/>
 						<label id="pd-pref-reports-last"/>
 					</hbox>
 				</tabpanel>
@@ -94,25 +93,25 @@
 				<tabpanel orient="vertical">
 					<groupbox>
 						<caption>
-							<checkbox id="pd-pref-test" label="Test mode" preference="pref-test" checked="false"
+							<checkbox id="pd-pref-test" label="&pdPrefsMiscTest;" preference="pref-test" checked="false"
 								oncommand="pdPrefsPane.update_test();" />
 						</caption>
 						<hbox align="center">
-							<label control="pd-pref-test-rate" value="Spoofed detection rate (in %):"/>
+							<label control="pd-pref-test-rate" value="&pdPrefsMiscTestSpoof;"/>
 							<textbox id="pd-pref-test-rate" preference="pref-test-rate" width="50" placeholder="20"
 								onchange="pdPrefsPane.changed('test-rate');"/>
 						</hbox>
-						<checkbox id="pd-pref-test-report" label="Report test incidents" preference="pref-test-report" checked="false"/>
+						<checkbox id="pd-pref-test-report" label="&pdPrefsMiscTestReport;" preference="pref-test-report" checked="false"/>
 					</groupbox>
 					<hbox align="center">
 						<label control="pd-loglevel" value="Log level:"/>
 						<menulist id="pd-loglevel" preference="pref-loglevel">
 							<menupopup>
-								<menuitem label="Debug" value="0"/>
-								<menuitem label="Log" value="1"/>
-								<menuitem label="Info" value="2"/>
-								<menuitem label="Warnings" value="3"/>
-								<menuitem label="Errors" value="4"/>
+								<menuitem label="pdPrefsLogDebug" value="0"/>
+								<menuitem label="pdPrefsLogLog" value="1"/>
+								<menuitem label="pdPrefsLogInfo" value="2"/>
+								<menuitem label="pdPrefsLogWarning" value="3"/>
+								<menuitem label="pdPrefsLogError" value="4"/>
 							</menupopup>
 						</menulist>
 					</hbox>

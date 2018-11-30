@@ -1,0 +1,9 @@
+
+<!ENTITY pdViewTitle      "PhishDetect">
+<!ENTITY pdViewCaption    "Possible phishing email detected. All links in the message have been BLOCKED.">
+<!ENTITY pdViewDetailsOn  "Show Details">
+<!ENTITY pdViewDetailsOff "Hide Details">
+<!ENTITY pdViewUnblock    "Unblock links">
+<!ENTITY pdViewIncidents  "The following elements of the email have been identified as a possible phishing attempt:">
+<!ENTITY pdViewContent    "Content">
+<!ENTITY pdViewType       "Type">

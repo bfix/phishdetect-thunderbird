@@ -1,0 +1,7 @@
+
+<!ENTITY pdRescanTitle   "PhishDetect Nachpr&uuml;fung">
+<!ENTITY pdRescanCaption "Neue PhishDetect Indikatoren wurden in vormals gepr&uuml;ften EMail gefunden:">
+<!ENTITY pdRescanWait    "Sammle EMails -- dies kann eine Weile dauern...">
+<!ENTITY pdRescanSender  "Von">
+<!ENTITY pdRescanSubject "Betreff">
+<!ENTITY pdRescanDate    "Datum">

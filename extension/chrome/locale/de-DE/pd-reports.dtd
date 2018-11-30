@@ -1,0 +1,11 @@
+
+<!ENTITY pdReportsTitle       "PhishDetect Reports">
+<!ENTITY pdReportsLast        "Letzter Report:">
+<!ENTITY pdReportsStatus      "Status:">
+<!ENTITY pdReportsDate        "Zuerst gesehen">
+<!ENTITY pdReportsIndicator   "Indikator">
+<!ENTITY pdReportsContext     "Kontext">
+<!ENTITY pdReportOptions      "Report Optionen:">
+<!ENTITY pdReportsWithContext "EmailID in Report aufnehmen">
+<!ENTITY pdReportsUser        "Reporter:">
+<!ENTITY pdReportsSend        "Sende Report">

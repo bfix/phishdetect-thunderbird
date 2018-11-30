@@ -1,0 +1,8 @@
+
+<!ENTITY pdToolbarLastSync      "Last sync: ">
+<!ENTITY pdToolbarLastReport    "Last report: ">
+<!ENTITY pdToolbarLastReportDef "Last report: ---">
+<!ENTITY pdToolbarTitle         "PhishDetect">
+<!ENTITY pdToolbarNodeSync      "Sync with node">
+<!ENTITY pdToolbarReporting     "Reporting...">
+<!ENTITY pdToolbarPrefs         "Preferences">

@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+<!DOCTYPE html SYSTEM "chrome://phishdetect/locale/pd-check.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		<title>PhishDetect URL check</title>
+		<title>&pdCheckTitle;</title>
 		<link rel="stylesheet" type="text/css" href="chrome://phishdetect/skin/pd-check.css" />
 		<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
 		<script type="text/javascript" src="chrome://phishdetect/content/pd-check.js"/> 
@@ -12,8 +12,8 @@
 				<tr>
 					<td valign="middle"><img src="icon48-w.png"/></td>
 					<td valign="top">
-						<span id="pd-check-title">PhishDetect URL check</span><br/>
-						<span id="pd-check-url">{URL to be checked}</span>
+						<span id="pd-check-title">&pdCheckTitle;</span><br/>
+						<span id="pd-check-url">&pdCheckURL;</span>
 					</td>
 				</tr>
 			</table>
@@ -21,7 +21,7 @@
 		<div id="pd-check-deck">
 			<div id="pd-check-running">
     	    	<p>
-        			Checking URL: This might take a while...
+    	    		&pdCheckWait;    			
         			<img src="spinner.gif" width="48" style="vertical-align:middle; margin-left: 2em;"/>
 	        	</p>
 			</div>
@@ -32,15 +32,11 @@
 							<img src="approve.png" style="margin-right: 4em;"/>
 						</td>
 						<td>
-							<p class="title">No obvious problems detected.</p>
+							<p class="title">&pdCheckOK;</p>
 							<div id="pd-check-whitelisted" class="hidden">
-								The domain the link refers to is <b>whitelisted</b>!
-								It appears to be a legitimate site owned by <span id="pd-check-brand-name2"/>
+								&pdCheckBrand; <span id="pd-check-brand-name2"/>
 							</div>
-							<p>No suspicious elements have been found in this page. This does not
-							guarantee that the page is completely safe (for example, it might
-							evade our detection or identify our service and redirect instead
-							to a legitimate page), please always be cautious.</p>
+							<p>&pdCheckOKMsg;</p>
 						</td>
 					</tr>
 				</table>
@@ -52,9 +48,8 @@
 							<img src="warning.png" style="margin-right: 4em;"/>
 						</td>
 						<td>
-							<p class="title">Problems detected.</p>
-							<p>This website has suspicious properties. This is could be a phishing site,
-							but we couldn't determine more conclusively. Please proceed with caution.</p>
+							<p class="title">&pdCheckWarning;</p>
+							<p>&pdCheckWarnMsg;</p>
 						</td>
 					</tr>
 				</table>
@@ -66,11 +61,10 @@
 							<img src="danger.png" style="margin-right: 4em;"/>
 						</td>
 						<td>
-							<p class="title">Serious problems detected!</p>
-							<p>This website has very suspicious properties and is highly likely a
-							phishing site. We recommend to not proceed to this page.</p>
+							<p class="title">&pdCheckDanger;</p>
+							<p>&pdCheckDangerMsg;</p>
 							<div id="pd-check-brand" class="hidden">
-								This website is impersonating the following brand:
+								&pdCheckImperson;
 								<span id="pd-check-brand-name"/>
 							</div>
 						</td>
@@ -79,12 +73,15 @@
 			</div>
 			<div id="pd-check-results" class="hidden">
 				<hr/>
-				<p>The following issues have been detected:</p>
+				<p>&pdCheckIssues;</p>
 				<ul id="pd-check-results-list"></ul>
 			</div>
 			<div id="pd-check-preview" class="hidden">
 				<hr/>
-				<span id="pd-check-preview-button" onclick="pdCheckPreview()">Show preview</span>
+				<span id="pd-check-preview-button" onclick="pdCheckPreview()"
+					data-on="&pdCheckPreviewOn;" data-off="&pdCheckPreviewOff;">
+					&pdCheckPreviewOn;
+				</span>
 				<div id="pd-check-preview-canvas" class="hidden">
 					<img id="pd-check-preview-image" src="" width="99%"/>
 				</div>
@@ -96,13 +93,15 @@
 							<img src="failure.png" style="margin-right: 4em;"/>
 						</td>
 						<td valign="top">
-							<p class="title">Sorry, the URL check service is not reachable.</p>
-							<p>Make sure you are connected to the internet
-							and that your PhishDetect node is available.</p>
+							<p class="title">&pdCheckError;</p>
+							<p>&pdCheckErrorMsg;</p>
 							<hr/>
-							<span id="pd-check-error-button" onclick="pdCheckDetails()">Show details</span>
+							<span id="pd-check-error-button" onclick="pdCheckDetails()"
+								data-on="&pdCheckDetailsOn;" data-off="&pdCheckDetailsOff;">
+								&pdCheckDetailsOn;
+							</span>
 							<div id="pd-check-error-details">
-					 			<p>An error occurred during URL check:</p>
+					 			<p>&pdCheckDetails;</p>
 								<div id="pd-check-error-msg">
 								</div>
 							</div>

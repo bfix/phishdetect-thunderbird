@@ -3,13 +3,15 @@
 <?xml-stylesheet type="text/css" href="chrome://messenger/skin/preferences/preferences.css"?>
 <?xml-stylesheet type="text/css" href="chrome://phishdetect/skin/pd-reports.css"?>
 
+<!DOCTYPE window SYSTEM "chrome://phishdetect/locale/pd-reports.dtd">
 <window
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-	id="pd-reports-dlg" title="PhishDetect Reports" drawtitle="true"
+	id="pd-reports-dlg" title="&pdReportsTitle;" drawtitle="true"
 	windowtype="phishdetect:reports" height="300" width="600"
 	persist="width height screenX screenY sizemode"
 	onload="pdReportsOnLoad();" onclose="pdReportsOnClose(event);">
 	
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-stringbundle.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-database.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-client.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/pd-reports.js"/> 
@@ -17,8 +19,8 @@
 	<vbox flex="1">
 		<hbox align="center">
 			<vbox>
-				<description value="Last report:"/>
-				<description value="Status:"/>
+				<description value="&pdReportsLast;"/>
+				<description value="&pdReportsStatus;"/>
 			</vbox>
 			<vbox>
 				<description id="pd-dlg-reports-last"/>
@@ -27,27 +29,25 @@
 		</hbox>
 		<tree id="pd-reports-tree" editable="true" flex="1">
 			<treecols>
-				<treecol id="timestamp" editable="false" label="First seen" flex="1"/>
-				<treecol id="indicator" editable="false" label="Indicator" flex="1"/>
-				<treecol id="context" editable="false" label="Context" flex="5"/>
+				<treecol id="timestamp" editable="false" label="&pdReportDate;" flex="1"/>
+				<treecol id="indicator" editable="false" label="&pdReportsIndicator;" flex="1"/>
+				<treecol id="context" editable="false" label="&pdReportsContext;" flex="5"/>
 			</treecols>
 			<treechildren/>
 		</tree>
 		<hbox pack="end" align="center">
 			<groupbox>
-				<caption>
-					Report options:
-				</caption>
-				<checkbox id="pd-dlg-reports-context" label="Include EmailID in report" checked="false"/>
+				<caption>&pdReportOptions;</caption>
+				<checkbox id="pd-dlg-reports-context" label="&pdReportsWithContext;" checked="false"/>
 				<hbox align="center">
-					<description value="Reporter:"/>
+					<description value="&pdReportsUser;"/>
 					<description id="pd-dlg-reports-user"/>
 				</hbox>
 			</groupbox>
 			<spacer flex="1"/>
 			<vbox>
 				<spacer flex="1"/>
-				<button id="pd-dlg-send" label="Send report" oncommand="pdReportsDlgSend();"/>
+				<button id="pd-dlg-send" label="&pdReportsSend;" oncommand="pdReportsDlgSend();"/>
 			</vbox>
 		</hbox>
 	</vbox>

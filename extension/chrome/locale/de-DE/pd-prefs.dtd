@@ -1,0 +1,26 @@
+
+<!ENTITY pdPrefsTitle          "PhishDetect Einstellungen">
+<!ENTITY pdPrefsTabNode        "Knoten">
+<!ENTITY pdPrefsTabReport      "Reporte">
+<!ENTITY pdPrefsTabMisc        "Sonstiges">
+<!ENTITY pdPrefsNodeCaption    "PhishDetect Knoten und Abgleich-Einstellungen:">
+<!ENTITY pdPrefsNodeUrl        "Knoten URL:">
+<!ENTITY pdPrefsNodeUrlMsg     "Eingabe einer URL...">
+<!ENTITY pdPrefsNodeSyncInt    "Update Intervall (min):">
+<!ENTITY pdPrefsNodeRescan     "Hintergrund-Pr&uuml;fung von alten EMails bei neuen Indikatoren">
+<!ENTITY pdPrefsNodeSyncLast   "Letzter Abgleich: ">
+<!ENTITY pdPrefsReportOn       "Aktiviere Report-Erstellung">
+<!ENTITY pdPrefsReportContext  "EmailID zur Referenz mitsenden">
+<!ENTITY pdPrefsReportUser     "Anwender:">
+<!ENTITY pdPrefsReportUserMsg  "Eingabe eines Namens...">
+<!ENTITY pdPrefsReportLast     "Letzter Abgleich: ">
+<!ENTITY pdPrefsMiscTest       "Test-Modus">
+<!ENTITY pdPrefsMiscTestSpoof  "Erkennungsrate (in &percent;):">
+<!ENTITY pdPrefsMiscTestReport "Test-Vorf&auml;lle melden">
+<!ENTITY pdPrefsLogDebug       "Debug">
+<!ENTITY pdPrefsLogLog         "Log">
+<!ENTITY pdPrefsLogInfo        "Info">
+<!ENTITY pdPrefsLogWarn        "Warning">
+<!ENTITY pdPrefsLogError       "Error">
+
+

@@ -1,0 +1,26 @@
+
+<!ENTITY pdPrefsTitle          "PhishDetect Preferences">
+<!ENTITY pdPrefsTabNode        "Node">
+<!ENTITY pdPrefsTabReport      "Reports">
+<!ENTITY pdPrefsTabMisc        "Misc">
+<!ENTITY pdPrefsNodeCaption    "Specify the PhishDetect node and synchronization parameters:">
+<!ENTITY pdPrefsNodeUrl        "Node URL:">
+<!ENTITY pdPrefsNodeUrlMsg     "Enter a URL...">
+<!ENTITY pdPrefsNodeSyncInt    "Update interval (min):">
+<!ENTITY pdPrefsNodeRescan     "Background re-scan of old email for new indicators">
+<!ENTITY pdPrefsNodeSyncLast   "Last sync: ">
+<!ENTITY pdPrefsReportOn       "Enable reporting">
+<!ENTITY pdPrefsReportContext  "Include Email ID for reference">
+<!ENTITY pdPrefsReportUser     "User:">
+<!ENTITY pdPrefsReportUserMsg  "Enter a user name...">
+<!ENTITY pdPrefsReportLast     "Last sync: ">
+<!ENTITY pdPrefsMiscTest       "Test mode">
+<!ENTITY pdPrefsMiscTestSpoof  "Spoofed detection rate (in &percent;):">
+<!ENTITY pdPrefsMiscTestReport "Report test incidents">
+<!ENTITY pdPrefsLogDebug       "Debug">
+<!ENTITY pdPrefsLogLog         "Log">
+<!ENTITY pdPrefsLogInfo        "Info">
+<!ENTITY pdPrefsLogWarn        "Warning">
+<!ENTITY pdPrefsLogError       "Error">
+
+

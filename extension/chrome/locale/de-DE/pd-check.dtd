@@ -1,0 +1,20 @@
+
+<!ENTITY pdCheckTitle      "PhishDetect URL-Pr&uuml;fung">
+<!ENTITY pdCheckURL        "{zu pr&uuml;fende URL}">
+<!ENTITY pdCheckWait       "Untersuche URL: Dies kann eine Weile dauern...">
+<!ENTITY pdCheckBrand      "Die Domain, auf die der Link verweist, ist <b>whitelisted</b>! Die Seite erscheint als eine legitime Seite f&uuml;r">
+<!ENTITY pdCheckOK         "Keine Probleme entdeckt.">
+<!ENTITY pdCheckOKMsg      "No suspicious elements have been found in this page. This does not guarantee that the page is completely safe (for example, it might evade our detection or identify our service and redirect instead to a legitimate page), please always be cautious."> 
+<!ENTITY pdCheckWarning    "Probleme entdeckt.">
+<!ENTITY pdCheckWarnMsg    "This website has suspicious properties. This is could be a phishing site, but we couldn't determine more conclusively. Please proceed with caution.">
+<!ENTITY pdCheckDanger     "Ernsthafte Probleme entdeckt!">
+<!ENTITY pdCheckDangerMsg  "This website has very suspicious properties and is highly likely a phishing site. We recommend to not proceed to this page.">
+<!ENTITY pdCheckImperson   "This website is impersonating the following brand:">
+<!ENTITY pdCheckIssues     "The following issues have been detected:">
+<!ENTITY pdCheckPreviewOn  "Zeige Voransicht">
+<!ENTITY pdCheckPreviewOf  "Verberge Voransicht">
+<!ENTITY pdCheckError      "Sorry, the URL check service is not reachable or returned an error.">
+<!ENTITY pdCheckErrorMsg   "Make sure you are connected to the internet and that your PhishDetect node is available.">
+<!ENTITY pdCheckDetailsOn  "Zeige Details">
+<!ENTITY pdCheckDetailsOff "Verberge Details">
+<!ENTITY pdCheckDetails    "Ein Fehler ist w&auml;hrend der URL-Pr&uuml;fung aufgetreten:"> 

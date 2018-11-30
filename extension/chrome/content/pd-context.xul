@@ -1,18 +1,21 @@
 <?xml version="1.0"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://phishdetect/locale/pd-context.dtd">
 <overlay id="pd-context" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
+	<script type="text/javascript" src="chrome://phishdetect/content/libs/pd-stringbundle.js"/> 
 	<script type="text/javascript" src="chrome://phishdetect/content/pd-context.js"/> 
 
 	<popup id="mailContext">
-		<menu class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="PhishDetect">
+		<menu class="menu-iconic" image="chrome://phishdetect/content/icon16.png" label="&pdContextTitle;">
 			<menupopup>
-				<menuitem id="pd-context-mail" label="(Re-)Check Email" oncommand="pdScanEmail();"/>
-				<menuitem id="pd-context-link" label="Check Link" oncommand="pdContextCheckLink(event);" disabled="true"/>
+				<menuitem id="pd-context-mail" label="&pdContextCheckEmail;" oncommand="pdScanEmail();"/>
+				<menuitem id="pd-context-link" label="&pdContextCheckLink;" oncommand="pdContextCheckLink(event);" disabled="true"/>
 			</menupopup>
 		</menu>
 	</popup>
 	<menupopup id="folderPaneContext" onpopupshowing="pdOnFolderContextShowing();">
 		<menuitem id="pd-context-folder" class="menuitem-iconic" image="chrome://phishdetect/content/icon16.png"
-			label="Scan emails in folder" oncommand="pdScanFolder();"/>
+			label="&pdContextScanFolder;" oncommand="pdScanFolder();"/>
 	</menupopup>
 </overlay>

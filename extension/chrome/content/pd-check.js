@@ -110,10 +110,10 @@ function pdCheckDetails() {
 	var e = document.getElementById('pd-check-error-details');
     if (e.style.display === "block") {
         e.style.display = "none";
-        b.innerHTML="Show details";
+        b.innerHTML = b.getAttribute("data-on");
     } else {
         e.style.display = "block";
-        b.innerHTML="Hide details";
+        b.innerHTML = b.getAttribute("data-off");
     }
 }
 
@@ -122,10 +122,10 @@ function pdCheckPreview() {
 	var e = document.getElementById('pd-check-preview-canvas');
     if (e.style.display === "block") {
         e.style.display = "none";
-        b.innerHTML="Show preview";
-    } else {
+        b.innerHTML = b.getAttribute("data-on");
+    } else { 
         e.style.display = "block";
-        b.innerHTML="Hide preview";
+        b.innerHTML = b.getAttribute("data-off");
     }
 }
 

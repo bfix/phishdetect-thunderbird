@@ -25,6 +25,7 @@
 // reference to view object (context for menu)
 var pdContextNode = null;
 
+
 // handle context menu popup
 function pdMailViewContext(event) {
 
@@ -64,7 +65,7 @@ function pdContextCheckLink(event) {
 		pdContextNode.getAttribute('href'),
 		pdPrefs.node_url
 	); 
-	pdStatusMsg("Checking URL...");
+	pdStatusMsg(pdGetString('pdContext.check_url'));
 }
 
 //open reporting dialog (if reports is enabled)
@@ -78,7 +79,7 @@ function pdManageReport() {
 			pdDatabase
 		);
 	} else {
-		alert("Reporting disabled in preferences");
+		alert(pdGetString('pdContext.reports_off'));
 	}
 }
 

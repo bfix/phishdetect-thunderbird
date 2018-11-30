@@ -1,25 +1,25 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://phishdetect/skin/pd-toolbar.css" type="text/css" ?>
 
-<!DOCTYPE overlay >
+<!DOCTYPE window SYSTEM "chrome://phishdetect/locale/pd-toolbar.dtd">
 <overlay id="pd-toolbar" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
 	<popupset>
-		<tooltip id="pd-toolbar-sync-tt" onpopupshowing="this.lastChild.value = 'Last sync: ' + pdGetLastSync();">
+		<tooltip id="pd-toolbar-sync-tt" onpopupshowing="this.lastChild.value = '&pdToolbarLastSync;' + pdGetLastSync();">
 			<label value="Last sync: ---"/>
 		</tooltip>
-		<tooltip id="pd-toolbar-report-tt" onpopupshowing="this.lastChild.value = 'Last report: ' + pdGetLastReport();">
-			<label value="Last report: ---"/>
+		<tooltip id="pd-toolbar-report-tt" onpopupshowing="this.lastChild.value = '&pdToolbarLastReport;' + pdGetLastReport();">
+			<label value="&pdToolbarLastReportDef;"/>
 		</tooltip>
 	</popupset>
 
 	<toolbarpalette id="MailToolbarPalette">
-		<toolbarbutton id="pd-toolbar-menu" label="PhishDetect" type="menu">
+		<toolbarbutton id="pd-toolbar-menu" label="&pdToolbarTitle;" type="menu">
 			<menupopup>
-				<menuitem label="Sync with node" tooltip="pd-toolbar-sync-tt" oncommand="pdSyncWithNode();"/>
-				<menuitem label="Reporting..." tooltip="pd-toolbar-report-tt" oncommand="pdManageReport();"/>
+				<menuitem label="&pdToolbarNodeSync;" tooltip="pd-toolbar-sync-tt" oncommand="pdSyncWithNode();"/>
+				<menuitem label="&pdToolbarReporting;" tooltip="pd-toolbar-report-tt" oncommand="pdManageReport();"/>
 				<menuseparator />
-				<menuitem label="Preferences" oncommand="pdShowPreferences();"/>
+				<menuitem label="&pdToolbarPrefs;" oncommand="pdShowPreferences();"/>
 			</menupopup>
 		</toolbarbutton>			
 	</toolbarpalette>
