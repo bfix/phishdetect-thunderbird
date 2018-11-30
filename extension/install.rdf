@@ -2,6 +2,13 @@
 <RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:em="http://www.mozilla.org/2004/em-rdf#">
   <Description about="urn:mozilla:install-manifest">
     <em:id>phishdetect-thunderbird@hoi-polloi.org</em:id>
+	<em:localized>
+		<Description>
+			<em:locale>de-DE</em:locale>
+			<em:name>PhishDetect für Thunderbird</em:name>
+			<em:description>Erkenne und blocke "phishing links" in E-Mails.</em:description>
+		</Description>
+	</em:localized>
     <em:name>PhishDetect for Thunderbird</em:name>
     <em:description>Detect and block phishing links in emails.</em:description>
     <em:version>1.0</em:version>
