@@ -73,11 +73,11 @@ var pdPrefsPane = {
 					pdLogger.debug("changed(node-url): " + v);
 					let url = new URL(v);
 					pdLogger.debug("=> URL: " + url);
-					if (url.protocol != "http:" && url.protocol != "https:") {
+					if (url.protocol !== "http:" && url.protocol !== "https:") {
 						f.value = "https://" + v;
 						return this.changed(field);
 					}
-					if (url.pathname != "/") {
+					if (url.pathname !== "/") {
 						f.value = url.protocol + "//" + url.host;
 						return this.changed(field);
 					}

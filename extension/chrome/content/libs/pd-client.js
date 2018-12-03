@@ -135,29 +135,16 @@ function pdInit() {
  * Node message exchange
  *****************************************************************************/
 
-// Send JSON-encoded request and expect JSON-encoded response.
+// Send JSON-encoded request (on POST) or GET request and expect
+// JSON-encoded response.
 // @returns {Promise}
 function pdSendRequest(uri, method, req) {
-	var prop = {
-		method: method
-	};
-	if (req !== null) {
-		prop.body = req;
-		pdLogger.debug("sendRequest(): " + req);
-		switch (typeof req) {
-		case 'FormData':
-			// prop.headers = { "Content-Type": "multipart/form-data" };
-			if (method != "POST") {
-				prop.method = "POST";
-				pdLogger.warn("Request type changed to POST");
-			}
-			break;
-		default:
-			prop.headers = { "Content-Type": "application/json" };
-		}
-	}
 	var url = pdPrefs.node_url + uri;
-	return fetch(url, prop);
+	return fetch(url, {
+		method: method,
+		body: req,
+		headers = { "Content-Type": "application/json" }
+	});
 }
 
 
@@ -243,7 +230,7 @@ function pdRescan(callback) {
 			let tagId = list[i].id;
 			let ind = list[i].hash;
 			let indicatorId = pdDatabase.hasIndicator(ind);
-			if (indicatorId != 0) {
+			if (indicatorId !== 0) {
 				// we found an indicator for the tag
 				pdDatabase.resolveTagIndicator(tagId, indicatorId);
 				// get a list of messages involved
@@ -296,7 +283,7 @@ function pdSendReport(pending, withContext, final) {
 		pdDatabase.setReported(pending[i].id, -1);
 		
 		// filter test incidents.
-		if (incident.kind == 0 && !withTest) {
+		if (incident.kind === 0 && !withTest) {
 			continue;
 		}
 		// assemble and queue "send task" for incident report
@@ -400,7 +387,7 @@ var pdTagList = function() {
 			"pdTagList.insert(): pdCheckForIndicator() => " +
 			JSON.stringify(check) +	" [" + this.data.length + "]"
 		);
-		return check.id != 0;
+		return check.id !== 0;
 	}
 };
 
@@ -643,7 +630,7 @@ function pdInspectEMail(hdr, email) {
 		}
 	}
 	// TEST mode: The demo incidents are not recorded and reported.
-	if (pdPrefs.test && status == 0) {
+	if (pdPrefs.test && status == 1) {
 		let rate = pdPrefs.test_rate / 100;
 		if (Math.random() < rate) {
 			status = -1;

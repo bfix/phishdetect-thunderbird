@@ -29,7 +29,7 @@ var pdReportsPending = null;
 var pdReportsSending = false;
 
 // globals
-var pdPref = null;
+var pdPrefs = null;
 var pdDatabase = null;
 
 // dialog is loaded
@@ -80,7 +80,7 @@ function pdReportsOnLoad() {
 		}
 	} else {
 		document.getElementById('pd-dlg-send').disabled = true;
-	};
+	}
   
 	// set reporter (user identifier)
 	document.getElementById("pd-dlg-reports-user").value = pdPrefs.reports_contact;

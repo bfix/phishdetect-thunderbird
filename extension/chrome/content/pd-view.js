@@ -68,7 +68,7 @@ var pdObserver = {
 function pdShowDetails(reset) {
 	var btn = document.getElementById("pd-details");
 	var details = document.getElementById("pd-indications");
-	if (reset || btn.getAttribute('data-state') == "1") {
+	if (reset || btn.getAttribute('data-state') === "1") {
 		btn.setAttribute("data-state", "0");
 		btn.label = btn.getAttribute('data-on');
 		details.collapsed = true;

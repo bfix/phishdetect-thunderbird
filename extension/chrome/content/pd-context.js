@@ -34,7 +34,7 @@ function pdMailViewContext(event) {
 		while (node !== null) {
 			// check node for anchor element.
 			pdLogger.debug("Scanning '" + node + " (" + node.localName + ")' for anchor node");
-			if (node.localName !== undefined && node.localName.toUpperCase() == 'A') {
+			if (node.localName !== undefined && node.localName.toUpperCase() === 'A') {
 				pdLogger.debug("Found context node: " + node);
 				return node;
 			}
@@ -100,11 +100,11 @@ function pdOnFolderContextShowing() {
 //check if the selected entry in the folder pane is a (non-empty) mail folder
 function pdIsMailFolder() {
 	var selFolders = gFolderTreeView.getSelectedFolders();
-	if (selFolders.length != 1) {
+	if (selFolders.length !== 1) {
 		return false;
 	}
 	var folder = selFolders[0];	
-	if (folder.getTotalMessages(false) == 0) {
+	if (folder.getTotalMessages(false) === 0) {
 		return false;
 	}
 	return true;

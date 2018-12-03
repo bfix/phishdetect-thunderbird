@@ -55,7 +55,7 @@ function pdScanEmail() {
 	pdCheckMessage(hdr, function(aMsgHdr, aRC) {
 		// set message flag to reflect detection status
 		pdSetMsgFlag(aMsgHdr, aRC);
-		pdStatusMsg(aRC.status != 1 ? "Suspicious email content!" : "Email looks clean");
+		pdStatusMsg(aRC.status !== 1 ? "Suspicious email content!" : "Email looks clean");
 		// TODO: update rendering of message
 	});
 }
@@ -64,7 +64,7 @@ function pdScanEmail() {
 function pdScanFolder() {
 	// get selected folder
 	var selFolders = gFolderTreeView.getSelectedFolders();
-	if (selFolders.length != 1) {
+	if (selFolders.length !== 1) {
 		alert("None or multiple folders selected - PhishDetect not run");
 		return;
 	}
@@ -84,7 +84,7 @@ function pdScanFolder() {
 	var cb = function(aMsgHdr, aRC) {
 		// set message header to reflect detection status
 		pdSetMsgFlag(aMsgHdr, aRC);
-		if (aRC.status == -1) {
+		if (aRC.status === -1) {
 			flagged++;
 		}
 		// status feedback
@@ -114,7 +114,7 @@ function pdCheckForPhish(aMsgHdr) {
 	if (rc === null) {
 		return false;
 	}
-	return rc.status == -1;
+	return rc.status === -1;
 }
 
 /*****************************************************************************
@@ -191,7 +191,7 @@ function pdShowSanitizedMsg(aMode) {
 	if (doc.body === null) {
 		return;
 	}
-	if (doc.body.getAttribute('phishdetect') != 'true' || !aMode) {
+	if (doc.body.getAttribute('phishdetect') !== 'true' || !aMode) {
 		// only process once...
 		doc.body.setAttribute('phishdetect','true');
 		// process email body
@@ -227,7 +227,7 @@ function pdSyncWithNode() {
 					out = "Database error -- " + msg;
 					break;
 				case 1:
-					out = (msg == "DONE" ? "Fetched indicators." : "Fetch cancelled.");
+					out = (msg === "DONE" ? "Fetched indicators." : "Fetch cancelled.");
 					break;
 			}
 			if (out.length > 0) {
@@ -283,7 +283,7 @@ function pdTaskScheduler() {
 	}
 	
 	// check for pending node sync
-	if (reportSyncInterval > 0 && now > (lastReportSync + reportSyncInterval)) {
+	if (now > (lastReportSync + reportSyncInterval)) {
 		// send pending incidents
 		pdStatusMsg("Sending pending incident reports...");
 		let num = pdSendReport(null, pdPrefs.reports_context, null);
@@ -300,7 +300,7 @@ function pdTaskScheduler() {
 
 function pdHandleNotificationBar(msgId, rc) {
 	// flagged as suspicious?
-	if (rc.status == -1) {
+	if (rc.status === -1) {
 		// yes: set notification bar content
 		let ts = new Date(rc.date);
 		document.getElementById('pd-scan-date').innerHTML =

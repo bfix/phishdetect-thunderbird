@@ -51,7 +51,7 @@ var pdDatabase = {
 			},
 			handleCompletion: function(aReason) {
 				let msg = "DONE";
-				if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
+				if (aReason !== Ci.mozIStorageStatementCallback.REASON_FINISHED)
 					msg = "CANCELED";
 				callback(1, msg);
 			}
@@ -75,7 +75,7 @@ var pdDatabase = {
 	// @returns {Object} or null if not in database
 	getEmailStatus: function(msgId) {
 		// check for valid message id
-		if (msgId === null || msgId.length == 0) {
+		if (msgId === null || msgId.length === 0) {
 			return null;
 		}
 		var stmt = this.dbConn.createStatement(
@@ -98,7 +98,7 @@ var pdDatabase = {
 	// @returns {bool} success?
 	setEmailStatus: function(msgId, rc) {
 		// check for valid message id
-		if (msgId === null || msgId.length == 0) {
+		if (msgId === null || msgId.length === 0) {
 			return false;
 		}
 		var stmt = null;
@@ -133,7 +133,7 @@ var pdDatabase = {
 			return false;
 		}
 		// remove any pending tags
-		var stmt = this.dbConn.createStatement(
+		stmt = this.dbConn.createStatement(
 			"DELETE FROM tags WHERE id NOT IN (SELECT tag FROM email_tags)"
 		);
 		return stmt.execute();
@@ -229,7 +229,7 @@ var pdDatabase = {
 	
 	// set the associated indicator reference for a tag
 	resolveTagIndicator: function(tagId, indicatorId) {
-		stmt = this.dbConn.createStatement(
+		var stmt = this.dbConn.createStatement(
 			'UPDATE tags SET indicator = :indId WHERE id = :tagId'
 		);
 		stmt.params.tagId = tagId;
@@ -380,7 +380,7 @@ var pdDatabase = {
 	// flag incident as reported
 	// @returns nothing
 	setReported: function(id, val) {
-		stmt = this.dbConn.createStatement(
+		var stmt = this.dbConn.createStatement(
 			'UPDATE incidents SET reported = :flag WHERE id = :id'
 		);
 		stmt.params.id = id;

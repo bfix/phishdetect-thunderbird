@@ -51,7 +51,7 @@ function pdCheckOnLoad(event) {
 	// assemble new form data instance
 	var prop = {
 		method: "POST",
-		body: request = JSON.stringify({ url: url, html: '' }),
+		body: JSON.stringify({ url: url, html: '' }),
 		headers: { "Content-Type": "application/json" }
 	}
 	//document.getElementById('pd-check-test').innerHTML = srv;
@@ -59,8 +59,7 @@ function pdCheckOnLoad(event) {
 		.then(response => response.json())
 		.then(result => {
 			// evaluate result
-			var list = null;
-			if (result.whitelisted || result.score == 0  || result.warnings === null || result.warnings.length == 0) {
+			if (result.whitelisted || result.score === 0  || result.warnings === null || result.warnings.length === 0) {
 				// switch to "All good" card
 				vCheck.classList.add('hidden');
 				vOk.classList.remove('hidden');
